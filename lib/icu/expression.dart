@@ -1,12 +1,12 @@
-abstract class ExpressionVisitor {
-  void visitList(ExpressionList expression);
-  void visitLiteral(LiteralExpression expression);
-  void visitSelect(MultipleExpression expression);
-  void visitReference(ReferenceExpression expression);
+abstract class ExpressionVisitor<T> {
+  T visitList(ExpressionList expression);
+  T visitLiteral(LiteralExpression expression);
+  T visitSelect(MultipleExpression expression);
+  T visitReference(ReferenceExpression expression);
 }
 
 abstract class Expression {
-  void visit(ExpressionVisitor visitor);
+  T visit<T>(ExpressionVisitor<T> visitor);
 }
 
 class ExpressionList implements Expression {
@@ -15,8 +15,8 @@ class ExpressionList implements Expression {
   ExpressionList(this.expressions);
 
   @override
-  void visit(ExpressionVisitor visitor) {
-    visitor.visitList(this);
+  T visit<T>(ExpressionVisitor<T> visitor) {
+    return visitor.visitList(this);
   }
 }
 
@@ -26,8 +26,8 @@ class LiteralExpression implements Expression {
   LiteralExpression(this.value);
 
   @override
-  void visit(ExpressionVisitor visitor) {
-    visitor.visitLiteral(this);
+  T visit<T>(ExpressionVisitor<T> visitor) {
+    return visitor.visitLiteral(this);
   }
 }
 
@@ -37,8 +37,8 @@ class ReferenceExpression implements Expression {
   ReferenceExpression(this.parameter);
 
   @override
-  void visit(ExpressionVisitor visitor) {
-    visitor.visitReference(this);
+  T visit<T>(ExpressionVisitor<T> visitor) {
+    return visitor.visitReference(this);
   }
 }
 
@@ -50,7 +50,7 @@ class MultipleExpression implements Expression {
   MultipleExpression(this.parameter, this.modifier, this.options);
 
   @override
-  void visit(ExpressionVisitor visitor) {
-    visitor.visitSelect(this);
+  T visit<T>(ExpressionVisitor<T> visitor) {
+    return visitor.visitSelect(this);
   }
 }
