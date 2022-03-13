@@ -2,7 +2,7 @@ import 'package:land/land.dart';
 
 void main(List<String> arguments) {
   final parser = Parser();
-  final visitor = PrintVisitor();
+  final printer = PrintVisitor();
   final expression = parser.parse('''
 'You have {count,plural, 
   =0{no items} 
@@ -10,10 +10,42 @@ void main(List<String> arguments) {
   other{{count} items}
 }.'
 ''');
-  expression.visit(visitor);
-} 
+  expression.visit(printer);
 
-class PrintVisitor implements ExpressionVisitor {
+  final applier = ApplyVisitor({'count': '=1'});
+  print(expression.visit(applier));
+}
+
+class ApplyVisitor implements ExpressionVisitor<String> {
+  final Map<String, Object> parameters;
+
+  ApplyVisitor(this.parameters);
+
+  @override
+  String visitList(ExpressionList expression) {
+    return expression.expressions
+        .map((expression) => expression.visit(this))
+        .join();
+  }
+
+  @override
+  String visitLiteral(LiteralExpression expression) {
+    return expression.value;
+  }
+
+  @override
+  String visitReference(ReferenceExpression expression) {
+    return parameters[expression.parameter]!.toString();
+  }
+
+  @override
+  String visitSelect(MultipleExpression expression) {
+    final option = parameters[expression.parameter]!.toString();
+    return expression.options[option]!.visit(this);
+  }
+}
+
+class PrintVisitor implements ExpressionVisitor<void> {
   var tab = 0;
   var list = 0;
 
