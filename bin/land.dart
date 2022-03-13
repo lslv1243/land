@@ -9,9 +9,13 @@ void main(List<String> arguments) {
       .parse('{count,plural, zero{No dogs} =1{One dog} other{{count} dogs}}');
   final topLevelList = parser.parse(
       'I have {count,plural, zero{no dogs} =1{one dog} other{{count} dogs}}');
+  final topLevelReference = parser.parse('{count}');
+  final topLevelLiteral = parser.parse('Hello World!');
   // print(formatExpression(expression, parameters: {'count': 0}));
   print(generateEntryCode('batata0', topLevelMultiple));
   print(generateEntryCode('batata1', topLevelList));
+  print(generateEntryCode('batata2', topLevelReference));
+  print(generateEntryCode('batata3', topLevelLiteral));
   // print(batata(7));
 }
 
@@ -34,29 +38,22 @@ Set<String> _findParameters(Expression expression) {
 
 String generateEntryCode(String name, Expression expression) {
   final varCreator = _VarCreator();
+
   if (expression is LiteralExpression) {
     return 'String get $name => \'${expression.value}\';\n';
   }
-  if (expression is ReferenceExpression) {
-    return 'String $name(Object ${expression.parameter}) {\n'
-        '  return ${expression.parameter}.toString();\n'
-        '}\n';
-  }
-  if (expression is ExpressionList || expression is MultipleExpression) {
-    // TODO: should have extracted parameters previously, or else
-    //  we can not guarantee order when changing language
-    final parameters = _findParameters(expression);
-    final parameterList = parameters.map((p) => 'Object $p').join(', ');
-    var pre = '';
-    void prepend(String value) => pre += value;
-    final value = _value(expression, varCreator: varCreator, prepend: prepend);
-    var code = 'String $name($parameterList) {\n';
-    code += pre + 'return $value;\n';
-    code += '}\n';
-    return code;
-  }
 
-  throw UnimplementedError();
+  // TODO: should have extracted parameters previously, or else
+  //  we can not guarantee order when changing language
+  final parameters = _findParameters(expression);
+  final parameterList = parameters.map((p) => 'Object $p').join(', ');
+  var pre = '';
+  void prepend(String value) => pre += value;
+  final value = _value(expression, varCreator: varCreator, prepend: prepend);
+  var code = 'String $name($parameterList) {\n';
+  code += pre + 'return $value;\n';
+  code += '}\n';
+  return code;
 }
 
 String _value(
@@ -66,9 +63,13 @@ String _value(
 }) {
   if (expression is LiteralExpression) {
     return '\'${expression.value}\'';
-  } else if (expression is ReferenceExpression) {
+  }
+
+  if (expression is ReferenceExpression) {
     return '${expression.parameter}.toString()';
-  } else if (expression is ExpressionList) {
+  }
+
+  if (expression is ExpressionList) {
     final values = <String>[];
     var code = '';
     for (final inner in expression.expressions) {
@@ -76,13 +77,15 @@ String _value(
     }
     code += values.join(' + ');
     return code;
-  } else if (expression is MultipleExpression) {
+  }
+
+  if (expression is MultipleExpression) {
     final name = varCreator.create();
     prepend(_multiple(name, expression, varCreator));
     return name;
-  } else {
-    throw UnimplementedError();
   }
+
+  throw UnimplementedError();
 }
 
 String _multiple(
