@@ -147,6 +147,7 @@ String _multiple(
     }
     final other = _value('other');
     if (other == null) {
+      // TODO: improve this error reporting (provide position)
       throw Exception('"other" missing for plurality.');
     }
     code += 'other: $other,\n';
