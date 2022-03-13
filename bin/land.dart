@@ -19,18 +19,18 @@ void main(List<String> arguments) {
   // print(batata(7));
 }
 
-Set<String> _findParameters(Expression expression) {
+Set<String> _parameterInUse(Expression expression) {
   final parameters = <String>{};
   if (expression is ReferenceExpression) {
     parameters.add(expression.parameter);
   } else if (expression is MultipleExpression) {
     parameters.add(expression.parameter);
     for (final option in expression.options.values) {
-      parameters.addAll(_findParameters(option));
+      parameters.addAll(_parameterInUse(option));
     }
   } else if (expression is ExpressionList) {
     for (final expression in expression.expressions) {
-      parameters.addAll(_findParameters(expression));
+      parameters.addAll(_parameterInUse(expression));
     }
   }
   return parameters;
@@ -45,7 +45,9 @@ String generateEntryCode(String name, Expression expression) {
 
   // TODO: should have extracted parameters previously, or else
   //  we can not guarantee order when changing language
-  final parameters = _findParameters(expression);
+  final parameters = _parameterInUse(expression);
+  // TODO: use parameters in use to verify that the declared parameters are correct
+  //  instead of using it to declare the parameters
   final parameterList = parameters.map((p) => 'Object $p').join(', ');
   var pre = '';
   void prepend(String value) => pre += value;
