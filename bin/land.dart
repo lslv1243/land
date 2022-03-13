@@ -5,10 +5,13 @@ import 'format_expression.dart';
 
 void main(List<String> arguments) {
   final parser = Parser();
-  final expression = parser
+  final topLevelMultiple = parser
       .parse('{count,plural, zero{No dogs} =1{One dog} other{{count} dogs}}');
+  final topLevelList = parser.parse(
+      'I have {count,plural, zero{no dogs} =1{one dog} other{{count} dogs}}');
   // print(formatExpression(expression, parameters: {'count': 0}));
-  print(generateEntryCode('batata', expression));
+  print(generateEntryCode('batata0', topLevelMultiple));
+  print(generateEntryCode('batata1', topLevelList));
   // print(batata(7));
 }
 
@@ -39,22 +42,7 @@ String generateEntryCode(String name, Expression expression) {
         '  return ${expression.parameter}.toString();\n'
         '}\n';
   }
-  if (expression is ExpressionList) {
-    // TODO: should have extracted parameters previously, or else
-    //  we can not guarantee order when changing language
-    final parameters = _findParameters(expression);
-    final parameterList = parameters.map((p) => 'Object $p').join(', ');
-    var pre = '';
-    void prepend(String value) => pre += value;
-    final values = <String>[];
-    for (final expression in expression.expressions) {
-      values.add(_value(expression, varCreator: varCreator, prepend: prepend));
-    }
-    var code = 'String $name($parameterList) {\n';
-    code += pre + 'return ${values.join(' + ')};\n';
-    code += '}\n';
-    return code;
-  } else if (expression is MultipleExpression) {
+  if (expression is ExpressionList || expression is MultipleExpression) {
     // TODO: should have extracted parameters previously, or else
     //  we can not guarantee order when changing language
     final parameters = _findParameters(expression);
@@ -66,9 +54,9 @@ String generateEntryCode(String name, Expression expression) {
     code += pre + 'return $value;\n';
     code += '}\n';
     return code;
-  } else {
-    throw UnimplementedError();
   }
+
+  throw UnimplementedError();
 }
 
 String _value(
