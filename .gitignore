@@ -4,3 +4,6 @@
 
 # Conventional directory for build output.
 build/
+
+# Generated files from the tool
+/lib/generated/

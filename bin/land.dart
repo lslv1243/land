@@ -1,9 +1,11 @@
+import 'dart:io';
+
 import 'package:intl/intl.dart';
 import 'package:land/land.dart';
 
 import 'format_expression.dart';
 
-void main(List<String> arguments) {
+void main(List<String> arguments) async {
   final parser = Parser();
   final topLevelMultiple = parser
       .parse('{count,plural, zero{No dogs} =1{One dog} other{{count} dogs}}');
@@ -11,12 +13,34 @@ void main(List<String> arguments) {
       'I have {count,plural, zero{no dogs} =1{one dog} other{{count} dogs}}');
   final topLevelReference = parser.parse('{count}');
   final topLevelLiteral = parser.parse('Hello World!');
-  // print(formatExpression(expression, parameters: {'count': 0}));
-  print(generateEntryCode('batata0', topLevelMultiple));
-  print(generateEntryCode('batata1', topLevelList));
-  print(generateEntryCode('batata2', topLevelReference));
-  print(generateEntryCode('batata3', topLevelLiteral));
-  // print(batata(7));
+
+  var code = '';
+  code += generateEntryCode('batata0', topLevelMultiple);
+  code += generateEntryCode('batata1', topLevelList);
+  code += generateEntryCode('batata2', topLevelReference);
+  code += generateEntryCode('batata3', topLevelLiteral);
+  code = _generateClass(code);
+  await writeFileAndFormat(code);
+}
+
+Future<void> writeFileAndFormat(String code) async {
+  final file = File('lib/generated/generated.dart');
+  await file.writeAsString(code);
+  await Process.run('dart', ['format', file.path]);
+}
+
+String _generateClass(String fields) {
+  var code = '';
+  code += 'import \'package:intl/intl.dart\';\n';
+  code += 'class L10N {\n';
+  code += 'final String localeName;\n';
+  code += '\n';
+  code += 'L10N(this.localeName);\n';
+  code += '\n';
+  code += fields;
+  code += '}\n';
+  code += '\n';
+  return code;
 }
 
 Set<String> _parameterInUse(Expression expression) {
