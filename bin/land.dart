@@ -1,7 +1,9 @@
 import 'dart:io';
 
 import 'package:intl/intl.dart';
+import 'package:intl/locale.dart';
 import 'package:land/land.dart';
+import 'package:path/path.dart';
 
 import 'format_expression.dart';
 
@@ -19,8 +21,12 @@ void main(List<String> arguments) async {
   code += generateEntryCode('batata1', topLevelList);
   code += generateEntryCode('batata2', topLevelReference);
   code += generateEntryCode('batata3', topLevelLiteral);
-  code = _generateClass(code);
+  code = _generateClass(code, languageTag: 'pt-BR');
   await writeFileAndFormat(code);
+
+  // final l10n = L10N_pt_BR();
+  // print(l10n.batata3);
+  // print(l10n.batata1(10));
 }
 
 Future<void> writeFileAndFormat(String code) async {
@@ -29,13 +35,24 @@ Future<void> writeFileAndFormat(String code) async {
   await Process.run('dart', ['format', file.path]);
 }
 
-String _generateClass(String fields) {
+String _generateClass(String fields, {required String languageTag}) {
+  String capitalizeTag(String tag) {
+    return tag
+        .split('_')
+        .map((word) => word[0].toUpperCase() + word.substring(1).toLowerCase())
+        .join();
+  }
+
+  languageTag = Intl.canonicalizedLocale(languageTag);
+  final className = 'L10N${capitalizeTag(languageTag)}';
   var code = '';
   code += 'import \'package:intl/intl.dart\';\n';
-  code += 'class L10N {\n';
-  code += 'final String localeName;\n';
+  code += 'import \'package:intl/locale.dart\';\n';
+  code += 'class $className {\n';
+  code += 'String get localeName => locale.toLanguageTag();\n';
+  code += 'final Locale locale;\n';
   code += '\n';
-  code += 'L10N(this.localeName);\n';
+  code += '$className(): locale = Locale.parse(\'$languageTag\');\n';
   code += '\n';
   code += fields;
   code += '}\n';
