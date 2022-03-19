@@ -16,7 +16,9 @@ class LanguageDeclaration {
 }
 
 LanguageDeclaration createLanguageDeclaration(
-    String localeName, Map<String, String> fields) {
+  String localeName,
+  Map<String, String> fields,
+) {
   final parser = Parser();
   var body = '';
   for (final field in fields.entries) {
@@ -24,12 +26,22 @@ LanguageDeclaration createLanguageDeclaration(
     body += _createGetterOrMethod(field.key, expression);
     body += '\n';
   }
-  final _class = _createClass(body, localeName: localeName);
+  final _class = _createClass(
+    body,
+    localeName: localeName,
+    supername: 'L10N',
+  );
+
+  var code = '';
+  code += 'import \'package:intl/intl.dart\';\n';
+  code += 'import \'package:intl/locale.dart\';\n';
+  code += 'import \'l10n.dart\';';
+  code += _class.code;
   return LanguageDeclaration(
     fieldsNames: fields.keys.toList(),
     className: _class.name,
     localeName: localeName,
-    code: _class.code,
+    code: code,
   );
 }
 
@@ -43,7 +55,11 @@ class _Class {
   });
 }
 
-_Class _createClass(String body, {required String localeName}) {
+_Class _createClass(
+  String body, {
+  required String localeName,
+  required String supername,
+}) {
   String capitalizeTag(String tag) {
     return tag
         .split('_')
@@ -56,12 +72,12 @@ _Class _createClass(String body, {required String localeName}) {
     throw ArgumentError.value(
         localeName, 'localeName', 'Rename to $_localeName.');
   }
-  final className = 'L10N${capitalizeTag(_localeName)}';
+  final className = '$supername${capitalizeTag(_localeName)}';
   var code = '';
-  code += 'import \'package:intl/intl.dart\';\n';
-  code += 'import \'package:intl/locale.dart\';\n';
-  code += 'class $className {\n';
+  code += 'class $className implements $supername {\n';
   code += 'static const localeName = \'$_localeName\';\n';
+  code += '\n';
+  code += '@override\n';
   code += 'final Locale locale;\n';
   code += '\n';
   code += '$className(): locale = Locale.parse(localeName);\n';
