@@ -14,8 +14,8 @@ Future<ARBLanguageInfo> loadARBFolder(String path,
   final languagesJSON = <String, Map<String, dynamic>>{};
 
   await for (final file in Directory(path).list()) {
-    if (p.extension(path) != '.arb') continue;
-    final fileName = p.basenameWithoutExtension(path);
+    if (p.extension(file.path) != '.arb') continue;
+    final fileName = p.basenameWithoutExtension(file.path);
     final localeSeparatorIndex = fileName.indexOf('_');
     // we gonna ignore any arb files which does not have a locale suffix
     if (localeSeparatorIndex == -1) continue;
