@@ -188,8 +188,7 @@ class _Visitor implements ExpressionVisitor<String> {
       }
       final other = value('other');
       if (other == null) {
-        // TODO: improve this error reporting (provide position)
-        throw Exception('"other" missing for plurality.');
+        throw Exception('Missing "other" for plurality in field $name.');
       }
       code += 'other: $other,\n';
       code += ');\n';
