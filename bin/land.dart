@@ -2,7 +2,7 @@ import 'dart:io';
 
 import 'package:dart_style/dart_style.dart';
 
-import 'create_language_declaration.dart';
+import 'create_declaration_files.dart';
 import 'package:land/generated/l10n.dart';
 
 void main(List<String> arguments) async {
@@ -49,7 +49,7 @@ void main(List<String> arguments) async {
   print(proxy.helloWorld);
 }
 
-Future<void> formatAndWriteFiles(List<LanguageFile> files) async {
+Future<void> formatAndWriteFiles(List<DeclarationFile> files) async {
   final formatter = DartFormatter();
   final root = 'lib/generated';
 

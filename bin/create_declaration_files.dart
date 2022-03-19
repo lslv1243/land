@@ -1,20 +1,20 @@
 import 'package:intl/intl.dart';
 import 'package:land/land.dart';
 
-class LanguageFile {
+class DeclarationFile {
   final String name;
   final String code;
 
-  LanguageFile({required this.name, required this.code});
+  DeclarationFile({required this.name, required this.code});
 }
 
-List<LanguageFile> createDeclarationFiles({
+List<DeclarationFile> createDeclarationFiles({
   required Map<String, List<String>> fields,
   required Map<String, Map<String, String>> locales,
   String className = 'L10N',
   bool generateProxy = false,
 }) {
-  final declarations = <LanguageFile>[];
+  final declarations = <DeclarationFile>[];
 
   final parent = _LanguageSuper(
     fileName: '${className.toLowerCase()}.dart',
@@ -30,7 +30,7 @@ List<LanguageFile> createDeclarationFiles({
     );
     final file = 'proxy_${className.toLowerCase()}.dart';
     declarationsFiles.add(file);
-    declarations.add(LanguageFile(
+    declarations.add(DeclarationFile(
       name: file,
       code: proxyDeclaration,
     ));
@@ -46,7 +46,7 @@ List<LanguageFile> createDeclarationFiles({
 
     final file = '${className.toLowerCase()}_${locale.key.toLowerCase()}.dart';
     declarationsFiles.add(file);
-    declarations.add(LanguageFile(
+    declarations.add(DeclarationFile(
       name: file,
       code: declaration,
     ));
@@ -57,7 +57,7 @@ List<LanguageFile> createDeclarationFiles({
     className: parent.className,
     declarationsFiles: declarationsFiles,
   );
-  declarations.add(LanguageFile(
+  declarations.add(DeclarationFile(
     name: parent.fileName,
     code: superDeclaration,
   ));
