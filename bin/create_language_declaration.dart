@@ -65,7 +65,8 @@ String createLanguageDeclaration(
   var code = '';
   code += 'import \'package:intl/intl.dart\';\n';
   code += 'import \'package:intl/locale.dart\';\n';
-  code += 'import \'l10n.dart\';';
+  code += '\n';
+  code += 'import \'l10n.dart\';\n';
   code += _class.code;
   return code;
 }
@@ -85,8 +86,9 @@ String _createSuperClass(
   required String name,
 }) {
   var code = '';
-  code += 'class $name {\n';
-  code += 'String get locale;\n';
+  code += 'abstract class $name {\n';
+  code += 'Locale get locale;\n';
+  code += '\n';
   code += body;
   code += '}\n';
   return code;
@@ -261,9 +263,9 @@ class _Visitor implements ExpressionVisitor<String> {
 
 String _createGetterOrMethodDeclaration(String name, List<String> parameters) {
   // TODO: this logic differ from _createGetterOrMethod
-  if (parameters.isEmpty) return 'String get name;\n';
+  if (parameters.isEmpty) return 'String get $name;\n';
   final parameterList = parameters.map((p) => 'Object $p').join(', ');
-  return 'String $name($parameterList);\b';
+  return 'String $name($parameterList);\n';
 }
 
 String _createGetterOrMethod(
@@ -272,7 +274,7 @@ String _createGetterOrMethod(
   List<String> parameters,
 ) {
   if (expression is LiteralExpression) {
-    return 'String get $name => \'${expression.value}\';\n';
+    return '@override String get $name => \'${expression.value}\';\n';
   }
 
   final usingParameters = _usingParameters(expression);
@@ -287,7 +289,7 @@ String _createGetterOrMethod(
   final scope = _Scope();
   final visitor = _Visitor(scope);
   final value = expression.visit(visitor);
-  var code = 'String $name($parameterList) {\n';
+  var code = '@override String $name($parameterList) {\n';
   code += scope.declarations;
   code += 'return $value;\n';
   code += '}\n';

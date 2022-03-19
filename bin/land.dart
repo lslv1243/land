@@ -12,7 +12,7 @@ void main(List<String> arguments) async {
     'iHaveNDogs': ['count'],
   };
 
-  final messages = <String, String>{
+  final messagesPtBr = <String, String>{
     'helloWorld': 'Hello World!',
     'count': '{count}',
     'nDogs': '{count,plural, zero{No dogs} =1{One dog} other{{count} dogs}}',
@@ -20,13 +20,27 @@ void main(List<String> arguments) async {
         'I have {count,plural, zero{no dogs} =1{one dog} other{{count} dogs}}.',
   };
 
-  final portuguese = createLanguageDeclaration('pt_BR', messages, fields);
-
-  await writeFileAndFormat(portuguese);
+  await writeFormattedFiles(
+    createSuperDeclaration(fields),
+    {
+      'pt_BR': createLanguageDeclaration('pt_BR', messagesPtBr, fields),
+    },
+  );
 }
 
-Future<void> writeFileAndFormat(String code) async {
-  code = DartFormatter().format(code);
-  final file = File('lib/generated/generated.dart');
-  await file.writeAsString(code);
+Future<void> writeFormattedFiles(
+  String superDeclaration,
+  Map<String, String> languagesDeclarations,
+) async {
+  final formatter = DartFormatter();
+  final root = 'lib/generated';
+
+  superDeclaration = formatter.format(superDeclaration);
+  await File('$root/l10n.dart').writeAsString(superDeclaration);
+
+  for (final language in languagesDeclarations.entries) {
+    final declaration = formatter.format(language.value);
+    final suffix = language.key.toLowerCase();
+    await File('$root/l10n_$suffix.dart').writeAsString(declaration);
+  }
 }
