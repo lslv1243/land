@@ -20,39 +20,22 @@ void main(List<String> arguments) async {
         'I have {count,plural, zero{no dogs} =1{one dog} other{{count} dogs}}.',
   };
 
-  await writeFormattedFiles(
-    createSuperDeclaration(fields),
-    {
-      'pt_BR': createLanguageDeclaration('pt_BR', messagesPtBr, fields),
+  final files = createDeclarationFiles(
+    fields: fields,
+    locales: {
+      'pt_BR': messagesPtBr,
     },
   );
+
+  await formatAndWriteFiles(files);
 }
 
-Future<void> writeFormattedFiles(
-  String superDeclaration,
-  Map<String, String> languagesDeclarations,
-) async {
+Future<void> formatAndWriteFiles(List<LanguageFile> files) async {
   final formatter = DartFormatter();
   final root = 'lib/generated';
 
-  final declarationsFiles = <String>[];
-
-  for (final language in languagesDeclarations.entries) {
-    final declaration = formatter.format(language.value);
-    final suffix = language.key.toLowerCase();
-    final declarationFile = 'l10n_$suffix.dart';
-    declarationsFiles.add(declarationFile);    
-    await File('$root/$declarationFile').writeAsString(declaration);
+  for (final file in files) {
+    final formatted = formatter.format(file.code);
+    await File('$root/${file.name}').writeAsString(formatted);
   }
-
-  // export the languages declarations to facilitate importing
-  var exports = '';
-  for (final file in declarationsFiles) {
-    exports += 'export \'$file\';\n';
-  }
-  exports += '\n';
-  superDeclaration = exports + superDeclaration;
-
-  superDeclaration = formatter.format(superDeclaration);
-  await File('$root/l10n.dart').writeAsString(superDeclaration);
 }

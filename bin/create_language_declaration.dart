@@ -1,14 +1,65 @@
 import 'package:intl/intl.dart';
 import 'package:land/land.dart';
 
-class LanguageField {
-  final List<String> parameters;
-  final String message;
+class LanguageFile {
+  final String name;
+  final String code;
 
-  LanguageField(this.parameters, this.message);
+  LanguageFile({required this.name, required this.code});
 }
 
-String createSuperDeclaration(Map<String, List<String>> fields) {
+List<LanguageFile> createDeclarationFiles({
+  required Map<String, List<String>> fields,
+  required Map<String, Map<String, String>> locales,
+  String className = 'L10N',
+}) {
+  final declarations = <LanguageFile>[];
+
+  String filename([String? locale]) {
+    var name = className.toLowerCase();
+    if (locale != null) {
+      name += '_${locale.toLowerCase()}';
+    }
+    name += '.dart';
+    return name;
+  }
+
+  final declarationsFiles = <String>[];
+
+  for (final locale in locales.entries) {
+    final declaration = _createLanguageDeclaration(
+        locale.key, locale.value, fields,
+        superclassName: className);
+
+    final file = filename(locale.key);
+    declarationsFiles.add(file);
+    declarations.add(LanguageFile(
+      name: file,
+      code: declaration,
+    ));
+  }
+
+  var superDeclaration = _createSuperDeclaration(fields, className: className);
+
+  // prepend super with exports to facilitate when importing
+  // TODO: move this logic to inside create super declaration?
+  var exports = '';
+  for (final file in declarationsFiles) {
+    exports += 'export \'$file\';\n';
+  }
+  exports += '\n';
+  superDeclaration = exports + superDeclaration;
+
+  declarations.add(LanguageFile(
+    name: filename(),
+    code: superDeclaration,
+  ));
+
+  return declarations;
+}
+
+String _createSuperDeclaration(Map<String, List<String>> fields,
+    {required String className}) {
   var body = '';
   for (final field in fields.entries) {
     body += _createGetterOrMethodDeclaration(field.key, field.value);
@@ -16,7 +67,7 @@ String createSuperDeclaration(Map<String, List<String>> fields) {
   }
   final _classCode = _createSuperClass(
     body,
-    name: 'L10N',
+    name: className,
   );
 
   var code = '';
@@ -25,11 +76,12 @@ String createSuperDeclaration(Map<String, List<String>> fields) {
   return code;
 }
 
-String createLanguageDeclaration(
+String _createLanguageDeclaration(
   String localeName,
   Map<String, String> messages,
-  Map<String, List<String>> fields,
-) {
+  Map<String, List<String>> fields, {
+  required String superclassName,
+}) {
   final parser = Parser();
   var body = '';
 
@@ -59,15 +111,17 @@ String createLanguageDeclaration(
   final _class = _createClass(
     body,
     localeName: localeName,
-    supername: 'L10N',
+    supername: superclassName,
   );
 
   var code = '';
   code += 'import \'package:intl/intl.dart\';\n';
   code += 'import \'package:intl/locale.dart\';\n';
   code += '\n';
+  // TODO: this filename is hardcoded
   code += 'import \'l10n.dart\';\n';
   code += _class.code;
+
   return code;
 }
 
