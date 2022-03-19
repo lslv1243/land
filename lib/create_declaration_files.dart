@@ -400,6 +400,9 @@ class _Visitor implements ExpressionVisitor<String> {
 
   @override
   String visitList(ExpressionList expression) {
+    if (expression.expressions.isEmpty) {
+      return '\'\'';
+    }
     final values = <String>[];
     var code = '';
     for (final inner in expression.expressions) {
@@ -411,7 +414,7 @@ class _Visitor implements ExpressionVisitor<String> {
 
   @override
   String visitLiteral(LiteralExpression expression) {
-    return '\'${expression.value}\'';
+    return '\'${_cleanLiteral(expression.value)}\'';
   }
 
   @override
@@ -519,7 +522,7 @@ String _createGetterOrMethod(String name, Expression expression,
     List<DeclarationFieldParameter> parameters) {
   if (parameters.isEmpty) {
     final literal = (expression as LiteralExpression).value;
-    return 'String get $name => \'$literal\';\n';
+    return 'String get $name => \'${_cleanLiteral(literal)}\';\n';
   }
 
   final usingParameters = _usingParameters(expression);
@@ -555,4 +558,8 @@ extension on List<DeclarationFieldParameter> {
       return '$type ${parameter.name}';
     }).join(', ');
   }
+}
+
+String _cleanLiteral(String literal) {
+  return literal.replaceAll('\n', '\\n').replaceAll('\'', '\\\'');
 }

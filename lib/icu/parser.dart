@@ -60,7 +60,6 @@ class Parser {
         final literal = message.substring(lastStart, i);
         expressions.add(LiteralExpression(literal));
       }
-      if (expressions.isEmpty) throw ParserException('Empty expression.');
       return expressions.length == 1
           ? expressions.first
           : ExpressionList(expressions);
