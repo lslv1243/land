@@ -30,6 +30,7 @@ List<DeclarationFile> createDeclarationFiles({
     final proxyDeclaration = _createProxyDeclaration(
       fields,
       parent: parent,
+      emitLoader: emitSupportedLocales,
     );
     final file = 'proxy_${className.toLowerCase()}.dart';
     proxyDeclarationFile = file;
@@ -75,6 +76,7 @@ String _createProxyDeclaration(
   Map<String, List<String>> fields, {
   required _LanguageSuper parent,
   String proxyField = 'proxy',
+  bool emitLoader = false,
 }) {
   var body = '';
   for (final field in fields.entries) {
@@ -91,6 +93,7 @@ String _createProxyDeclaration(
     body,
     supername: parent.className,
     proxyField: proxyField,
+    emitLoader: emitLoader,
   );
 
   var code = '';
@@ -226,6 +229,7 @@ String _createProxyClass(
   String body, {
   required String supername,
   required String proxyField,
+  required bool emitLoader,
 }) {
   final className = 'Proxy$supername';
   var code = '';
@@ -235,6 +239,17 @@ String _createProxyClass(
   code += '\n';
   code += '$supername $proxyField;\n';
   code += '\n';
+  if (emitLoader) {
+    code += 'void load(String locale) {\n';
+    code += '$proxyField = $supername.locales[locale]!();\n';
+    code += '}\n';
+    code += '\n';
+    code += 'factory $className.loading(String locale) {\n';
+    code += 'final proxy = $supername.locales[locale]!();\n';
+    code += 'return $className(proxy);\n';
+    code += '}\n';
+    code += '\n';
+  }
   code += '$className(this.$proxyField);\n';
   code += '\n';
   code += body;
