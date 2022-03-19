@@ -18,11 +18,11 @@ void main(List<String> arguments) async {
   final topLevelLiteral = parser.parse('Hello World!');
 
   var code = '';
-  code += generateEntryCode('batata0', topLevelMultiple);
-  code += generateEntryCode('batata1', topLevelList);
-  code += generateEntryCode('batata2', topLevelReference);
-  code += generateEntryCode('batata3', topLevelLiteral);
-  code = _generateClass(code, languageTag: 'pt-BR');
+  code += _createGetterOrMethod('batata0', topLevelMultiple);
+  code += _createGetterOrMethod('batata1', topLevelList);
+  code += _createGetterOrMethod('batata2', topLevelReference);
+  code += _createGetterOrMethod('batata3', topLevelLiteral);
+  code = _createClass(code, languageTag: 'pt_BR');
   await writeFileAndFormat(code);
 
   // final l10n = L10NPtBr();
@@ -36,7 +36,7 @@ Future<void> writeFileAndFormat(String code) async {
   await file.writeAsString(code);
 }
 
-String _generateClass(String fields, {required String languageTag}) {
+String _createClass(String body, {required String languageTag}) {
   String capitalizeTag(String tag) {
     return tag
         .split('_')
@@ -55,7 +55,7 @@ String _generateClass(String fields, {required String languageTag}) {
   code += '\n';
   code += '$className(): locale = Locale.parse(localeName);\n';
   code += '\n';
-  code += fields;
+  code += body;
   code += '}\n';
   code += '\n';
   return code;
@@ -196,7 +196,7 @@ class CodeBlockVisitor implements ExpressionVisitor<String> {
   }
 }
 
-String generateEntryCode(String name, Expression expression) {
+String _createGetterOrMethod(String name, Expression expression) {
   if (expression is LiteralExpression) {
     return 'String get $name => \'${expression.value}\';\n';
   }
