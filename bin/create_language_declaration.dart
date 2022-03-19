@@ -24,12 +24,20 @@ List<LanguageFile> createDeclarationFiles({
     return name;
   }
 
+  final parent = _LanguageSuper(
+    fileName: filename(),
+    className: className,
+  );
+
   final declarationsFiles = <String>[];
 
   for (final locale in locales.entries) {
     final declaration = _createLanguageDeclaration(
-        locale.key, locale.value, fields,
-        superclassName: className);
+      locale.key,
+      locale.value,
+      fields,
+      parent: parent,
+    );
 
     final file = filename(locale.key);
     declarationsFiles.add(file);
@@ -41,11 +49,11 @@ List<LanguageFile> createDeclarationFiles({
 
   final superDeclaration = _createSuperDeclaration(
     fields,
-    className: className,
+    className: parent.className,
     declarationsFiles: declarationsFiles,
   );
   declarations.add(LanguageFile(
-    name: filename(),
+    name: parent.fileName,
     code: superDeclaration,
   ));
 
@@ -79,11 +87,21 @@ String _createSuperDeclaration(
   return code;
 }
 
+class _LanguageSuper {
+  final String fileName;
+  final String className;
+
+  _LanguageSuper({
+    required this.fileName,
+    required this.className,
+  });
+}
+
 String _createLanguageDeclaration(
   String localeName,
   Map<String, String> messages,
   Map<String, List<String>> fields, {
-  required String superclassName,
+  _LanguageSuper? parent,
 }) {
   final parser = Parser();
   var body = '';
@@ -103,6 +121,9 @@ String _createLanguageDeclaration(
           'Unexpected field named "${message.key}" in locale "$localeName".');
     }
     final expression = parser.parse(message.value);
+    if (parent != null) {
+      body += '@override\n';
+    }
     body += _createGetterOrMethod(
       message.key,
       expression,
@@ -114,15 +135,17 @@ String _createLanguageDeclaration(
   final _class = _createClass(
     body,
     localeName: localeName,
-    supername: superclassName,
+    supername: parent?.className,
   );
 
   var code = '';
   code += 'import \'package:intl/intl.dart\';\n';
   code += 'import \'package:intl/locale.dart\';\n';
   code += '\n';
-  // TODO: this filename is hardcoded
-  code += 'import \'l10n.dart\';\n';
+  if (parent != null) {
+    code += 'import \'${parent.fileName}\';\n';
+    code += '\n';
+  }
   code += _class.code;
 
   return code;
@@ -154,7 +177,7 @@ String _createSuperClass(
 _Class _createClass(
   String body, {
   required String localeName,
-  required String supername,
+  String? supername,
 }) {
   String capitalizeTag(String tag) {
     return tag
@@ -168,12 +191,18 @@ _Class _createClass(
     throw ArgumentError.value(
         localeName, 'localeName', 'Rename to $_localeName.');
   }
-  final className = '$supername${capitalizeTag(_localeName)}';
+  final className = '${supername ?? 'Language'}${capitalizeTag(_localeName)}';
   var code = '';
-  code += 'class $className implements $supername {\n';
+  code += 'class $className ';
+  if (supername != null) {
+    code += 'implements $supername ';
+  }
+  code += '{\n';
   code += 'static const localeName = \'$_localeName\';\n';
   code += '\n';
-  code += '@override\n';
+  if (supername != null) {
+    code += '@override\n';
+  }
   code += 'final Locale locale;\n';
   code += '\n';
   code += '$className(): locale = Locale.parse(localeName);\n';
@@ -325,13 +354,10 @@ String _createGetterOrMethodDeclaration(String name, List<String> parameters) {
 }
 
 String _createGetterOrMethod(
-  String name,
-  Expression expression,
-  List<String> parameters,
-) {
+    String name, Expression expression, List<String> parameters) {
   if (parameters.isEmpty) {
     final literal = (expression as LiteralExpression).value;
-    return '@override String get $name => \'$literal\';\n';
+    return 'String get $name => \'$literal\';\n';
   }
 
   final usingParameters = _usingParameters(expression);
@@ -346,7 +372,7 @@ String _createGetterOrMethod(
   final scope = _Scope();
   final visitor = _Visitor(scope);
   final value = expression.visit(visitor);
-  var code = '@override String $name($parameterList) {\n';
+  var code = 'String $name($parameterList) {\n';
   code += scope.declarations;
   code += 'return $value;\n';
   code += '}\n';
