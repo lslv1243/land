@@ -8,31 +8,54 @@ class LanguageField {
   LanguageField(this.parameters, this.message);
 }
 
-// String createSuperDeclaration(Map<String, String> fields) {
-//   var body = '';
-//   for (final field in fields.entries) {
-//     //
-//   }
-//   var code = '';
-//   code += 'import \'package:intl/locale.dart\';\n';
-//   return code;
-// }
+String createSuperDeclaration(Map<String, List<String>> fields) {
+  var body = '';
+  for (final field in fields.entries) {
+    body += _createGetterOrMethodDeclaration(field.key, field.value);
+    body += '\n';
+  }
+  final _classCode = _createSuperClass(
+    body,
+    name: 'L10N',
+  );
+
+  var code = '';
+  code += 'import \'package:intl/locale.dart\';\n';
+  code += _classCode;
+  return code;
+}
 
 String createLanguageDeclaration(
   String localeName,
-  Map<String, LanguageField> fields,
+  Map<String, String> messages,
+  Map<String, List<String>> fields,
 ) {
   final parser = Parser();
   var body = '';
-  for (final field in fields.entries) {
-    final expression = parser.parse(field.value.message);
+
+  // make sure we have all fields declared in this locale
+  for (final fieldName in fields.keys) {
+    if (!messages.containsKey(fieldName)) {
+      throw Exception(
+          'Missing message for field named "$fieldName" in locale "$localeName".');
+    }
+  }
+
+  for (final message in messages.entries) {
+    final field = fields[message.key];
+    if (field == null) {
+      throw Exception(
+          'Unexpected field named "${message.key}" in locale "$localeName".');
+    }
+    final expression = parser.parse(message.value);
     body += _createGetterOrMethod(
-      field.key,
+      message.key,
       expression,
-      field.value.parameters,
+      field,
     );
     body += '\n';
   }
+
   final _class = _createClass(
     body,
     localeName: localeName,
@@ -55,6 +78,18 @@ class _Class {
     required this.name,
     required this.code,
   });
+}
+
+String _createSuperClass(
+  String body, {
+  required String name,
+}) {
+  var code = '';
+  code += 'class $name {\n';
+  code += 'String get locale;\n';
+  code += body;
+  code += '}\n';
+  return code;
 }
 
 _Class _createClass(
@@ -86,7 +121,6 @@ _Class _createClass(
   code += '\n';
   code += body;
   code += '}\n';
-  code += '\n';
   return _Class(name: className, code: code);
 }
 
@@ -206,7 +240,8 @@ class _Visitor implements ExpressionVisitor<String> {
       }
       final other = value('other');
       if (other == null) {
-        throw Exception('Missing "other" for plurality in field named "$name".');
+        throw Exception(
+            'Missing "other" for plurality in field named "$name".');
       }
       code += 'other: $other,\n';
       code += ');\n';
@@ -224,6 +259,13 @@ class _Visitor implements ExpressionVisitor<String> {
   }
 }
 
+String _createGetterOrMethodDeclaration(String name, List<String> parameters) {
+  // TODO: this logic differ from _createGetterOrMethod
+  if (parameters.isEmpty) return 'String get name;\n';
+  final parameterList = parameters.map((p) => 'Object $p').join(', ');
+  return 'String $name($parameterList);\b';
+}
+
 String _createGetterOrMethod(
   String name,
   Expression expression,
@@ -236,7 +278,8 @@ String _createGetterOrMethod(
   final usingParameters = _usingParameters(expression);
   for (final parameter in usingParameters) {
     if (!parameters.contains(parameter)) {
-      throw Exception('Parameter named "$parameter" not declared in field named "$name".');
+      throw Exception(
+          'Parameter named "$parameter" not declared in field named "$name".');
     }
   }
 
