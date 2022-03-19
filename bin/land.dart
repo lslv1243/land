@@ -78,9 +78,130 @@ Set<String> _parameterInUse(Expression expression) {
   return parameters;
 }
 
-String generateEntryCode(String name, Expression expression) {
-  final varCreator = _VarCreator();
+class Scope {
+  Scope? parent;
+  var declarations = '';
 
+  Scope([this.parent]);
+
+  Scope child() => Scope(this);
+
+  void declare(String code) {
+    declarations += code;
+  }
+}
+
+class CodeBlockVisitor implements ExpressionVisitor<String> {
+  final varCreator = VarCreator();
+  Scope scope;
+
+  CodeBlockVisitor(this.scope);
+
+  @override
+  String visitList(ExpressionList expression) {
+    final values = <String>[];
+    var code = '';
+    for (final inner in expression.expressions) {
+      values.add(inner.visit(this));
+    }
+    code += values.join(' + ');
+    return code;
+  }
+
+  @override
+  String visitLiteral(LiteralExpression expression) {
+    return '\'${expression.value}\'';
+  }
+
+  @override
+  String visitReference(ReferenceExpression expression) {
+    return '${expression.parameter}.toString()';
+  }
+
+  @override
+  String visitSelect(MultipleExpression expression) {
+    final name = varCreator.create();
+    scope.declare(_multiple(name, expression));
+    return name;
+  }
+
+  String _multiple(String name, MultipleExpression expression) {
+    String? value(String option) {
+      final value = expression.options[option];
+      if (value == null) return null;
+      return value.visit(this);
+    }
+
+    String select() {
+      scope = scope.child();
+
+      var code = 'final String $name;\n';
+      code += 'switch (${expression.parameter}){\n';
+
+      for (final option in expression.options.entries) {
+        code += 'case \'${option.key}\':\n';
+        code += '$name = ${value(option.key)};\n';
+        code += 'break;\n';
+      }
+      code += 'default:\n';
+      code += 'throw UnimplementedError();\n';
+      code += '}\n';
+      code = scope.declarations + code;
+      scope = scope.parent!;
+      return code;
+    }
+
+    String plural() {
+      scope = scope.child();
+
+      var code = 'final $name = Intl.pluralLogic(\n';
+      code += '${expression.parameter} as num,\n';
+      code += 'locale: localeName,\n';
+      final zero = value('=0') ?? value('zero');
+      if (zero != null) {
+        code += 'zero: $zero,\n';
+      }
+      final one = value('=1') ?? value('one');
+      if (one != null) {
+        code += 'one: $one,\n';
+      }
+      final two = value('=2') ?? value('two');
+      if (two != null) {
+        code += 'two: $two,\n';
+      }
+      final few = value('few');
+      if (few != null) {
+        code += 'few: $few,\n';
+      }
+      final many = value('many');
+      if (many != null) {
+        code += 'many: $many,\n';
+      }
+      final other = value('other');
+      if (other == null) {
+        // TODO: improve this error reporting (provide position)
+        throw Exception('"other" missing for plurality.');
+      }
+      code += 'other: $other,\n';
+      code += ');\n';
+
+      code = scope.declarations + code;
+      scope = scope.parent!;
+      return code;
+    }
+
+    switch (expression.modifier) {
+      case 'select':
+        return select();
+      case 'plural':
+        return plural();
+      default:
+        throw UnimplementedError();
+    }
+  }
+}
+
+String generateEntryCode(String name, Expression expression) {
   if (expression is LiteralExpression) {
     return 'String get $name => \'${expression.value}\';\n';
   }
@@ -91,126 +212,16 @@ String generateEntryCode(String name, Expression expression) {
   // TODO: use parameters in use to verify that the declared parameters are correct
   //  instead of using it to declare the parameters
   final parameterList = parameters.map((p) => 'Object $p').join(', ');
-  var pre = '';
-  void prepend(String value) => pre += value;
-  final value = _value(expression, varCreator: varCreator, prepend: prepend);
+  final scope = Scope();
+  final visitor = CodeBlockVisitor(scope);
+  final value = expression.visit(visitor);
   var code = 'String $name($parameterList) {\n';
-  code += pre + 'return $value;\n';
+  code += scope.declarations + 'return $value;\n';
   code += '}\n';
   return code;
 }
 
-String _value(
-  Expression expression, {
-  required _VarCreator varCreator,
-  required void Function(String) prepend,
-}) {
-  if (expression is LiteralExpression) {
-    return '\'${expression.value}\'';
-  }
-
-  if (expression is ReferenceExpression) {
-    return '${expression.parameter}.toString()';
-  }
-
-  if (expression is ExpressionList) {
-    final values = <String>[];
-    var code = '';
-    for (final inner in expression.expressions) {
-      values.add(_value(inner, varCreator: varCreator, prepend: prepend));
-    }
-    code += values.join(' + ');
-    return code;
-  }
-
-  if (expression is MultipleExpression) {
-    final name = varCreator.create();
-    prepend(_multiple(name, expression, varCreator));
-    return name;
-  }
-
-  throw UnimplementedError();
-}
-
-String _multiple(
-  String name,
-  MultipleExpression expression,
-  _VarCreator varCreator,
-) {
-  String? value(String option, {required void Function(String) prepend}) {
-    final value = expression.options[option];
-    if (value == null) return null;
-    return _value(value, varCreator: varCreator, prepend: prepend);
-  }
-
-  String select() {
-    var pre = '';
-    void prepend(String value) => pre += value;
-
-    var code = 'final String $name;\n';
-    code += 'switch (${expression.parameter}){\n';
-
-    for (final option in expression.options.entries) {
-      code += 'case \'${option.key}\':\n';
-      code += '$name = ${value(option.key, prepend: prepend)};\n';
-      code += 'break;\n';
-    }
-    code += 'default:\n';
-    code += 'throw UnimplementedError();\n';
-    code += '}\n';
-    return pre + code;
-  }
-
-  String plural() {
-    var pre = '';
-    void prepend(String value) => pre += value;
-    String? _value(String option) => value(option, prepend: prepend);
-
-    var code = 'final $name = Intl.pluralLogic(\n';
-    code += '${expression.parameter} as num,\n';
-    code += 'locale: localeName,\n';
-    final zero = _value('=0') ?? _value('zero');
-    if (zero != null) {
-      code += 'zero: $zero,\n';
-    }
-    final one = _value('=1') ?? _value('one');
-    if (one != null) {
-      code += 'one: $one,\n';
-    }
-    final two = _value('=2') ?? _value('two');
-    if (two != null) {
-      code += 'two: $two,\n';
-    }
-    final few = _value('few');
-    if (few != null) {
-      code += 'few: $few,\n';
-    }
-    final many = _value('many');
-    if (many != null) {
-      code += 'many: $many,\n';
-    }
-    final other = _value('other');
-    if (other == null) {
-      // TODO: improve this error reporting (provide position)
-      throw Exception('"other" missing for plurality.');
-    }
-    code += 'other: $other,\n';
-    code += ');\n';
-
-    return pre + code;
-  }
-
-  switch (expression.modifier) {
-    case 'select':
-      return select();
-    case 'plural':
-      return plural();
-    default:
-      throw UnimplementedError();
-  }
-}
-
-class _VarCreator {
+class VarCreator {
   var count = 0;
 
   String create() => 'var${count++}';
