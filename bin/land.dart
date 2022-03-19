@@ -35,12 +35,24 @@ Future<void> writeFormattedFiles(
   final formatter = DartFormatter();
   final root = 'lib/generated';
 
-  superDeclaration = formatter.format(superDeclaration);
-  await File('$root/l10n.dart').writeAsString(superDeclaration);
+  final declarationsFiles = <String>[];
 
   for (final language in languagesDeclarations.entries) {
     final declaration = formatter.format(language.value);
     final suffix = language.key.toLowerCase();
-    await File('$root/l10n_$suffix.dart').writeAsString(declaration);
+    final declarationFile = 'l10n_$suffix.dart';
+    declarationsFiles.add(declarationFile);    
+    await File('$root/$declarationFile').writeAsString(declaration);
   }
+
+  // export the languages declarations to facilitate importing
+  var exports = '';
+  for (final file in declarationsFiles) {
+    exports += 'export \'$file\';\n';
+  }
+  exports += '\n';
+  superDeclaration = exports + superDeclaration;
+
+  superDeclaration = formatter.format(superDeclaration);
+  await File('$root/l10n.dart').writeAsString(superDeclaration);
 }
