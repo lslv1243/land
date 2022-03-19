@@ -1,8 +1,9 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:land/land.dart';
 import 'package:path/path.dart' as p;
+
+import 'create_declaration_files.dart';
 
 Future<ARBLanguageInfo> loadARBFolder(String path,
     {required String configurationFile}) async {
