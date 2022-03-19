@@ -438,7 +438,7 @@ class _Visitor implements ExpressionVisitor<String> {
 
     String select() {
       var code = 'final String $name;\n';
-      code += 'switch (${expression.parameter}){\n';
+      code += 'switch (${expression.parameter}.toString()){\n';
 
       for (final option in expression.options.entries) {
         code += 'case \'${option.key}\':\n';
