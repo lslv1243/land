@@ -252,9 +252,9 @@ String _createSuperClass(
   code += 'Locale get locale;\n';
   code += '\n';
   if (supportedLocales != null) {
-    code += 'static final locales = <String, Type>{\n';
+    code += 'static final locales = <String, $name Function()>{\n';
     for (final locale in supportedLocales.entries) {
-      code += '\'${locale.key}\': ${locale.value},\n';
+      code += '\'${locale.key}\': () => ${locale.value}(),\n';
     }
     code += '};\n';
     code += '\n';
