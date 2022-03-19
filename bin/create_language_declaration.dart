@@ -89,24 +89,24 @@ Set<String> _parameterInUse(Expression expression) {
   return parameters;
 }
 
-class Scope {
-  Scope? parent;
+class _Scope {
+  _Scope? parent;
   var declarations = '';
 
-  Scope([this.parent]);
+  _Scope([this.parent]);
 
-  Scope child() => Scope(this);
+  _Scope child() => _Scope(this);
 
   void declare(String code) {
     declarations += code;
   }
 }
 
-class CodeBlockVisitor implements ExpressionVisitor<String> {
-  final varCreator = VarCreator();
-  Scope scope;
+class _Visitor implements ExpressionVisitor<String> {
+  final _var = _UniqueVar();
+  _Scope scope;
 
-  CodeBlockVisitor(this.scope);
+  _Visitor(this.scope);
 
   @override
   String visitList(ExpressionList expression) {
@@ -131,7 +131,7 @@ class CodeBlockVisitor implements ExpressionVisitor<String> {
 
   @override
   String visitSelect(MultipleExpression expression) {
-    final name = varCreator.create();
+    final name = _var.create();
     scope.declare(_multiple(name, expression));
     return name;
   }
@@ -218,8 +218,8 @@ String _createGetterOrMethod(String name, Expression expression) {
   // TODO: use parameters in use to verify that the declared parameters are correct
   //  instead of using it to declare the parameters
   final parameterList = parameters.map((p) => 'Object $p').join(', ');
-  final scope = Scope();
-  final visitor = CodeBlockVisitor(scope);
+  final scope = _Scope();
+  final visitor = _Visitor(scope);
   final value = expression.visit(visitor);
   var code = 'String $name($parameterList) {\n';
   code += scope.declarations;
@@ -228,7 +228,7 @@ String _createGetterOrMethod(String name, Expression expression) {
   return code;
 }
 
-class VarCreator {
+class _UniqueVar {
   var count = 0;
 
   String create() => 'var${count++}';
