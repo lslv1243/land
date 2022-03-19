@@ -23,6 +23,19 @@ List<LanguageFile> createDeclarationFiles({
 
   final declarationsFiles = <String>[];
 
+  if (generateProxy) {
+    final proxyDeclaration = _createProxyDeclaration(
+      fields,
+      parent: parent,
+    );
+    final file = 'proxy_${className.toLowerCase()}.dart';
+    declarationsFiles.add(file);
+    declarations.add(LanguageFile(
+      name: file,
+      code: proxyDeclaration,
+    ));
+  }
+
   for (final locale in locales.entries) {
     final declaration = _createLanguageDeclaration(
       locale.key,
@@ -36,19 +49,6 @@ List<LanguageFile> createDeclarationFiles({
     declarations.add(LanguageFile(
       name: file,
       code: declaration,
-    ));
-  }
-
-  if (generateProxy) {
-    final proxyDeclaration = _createProxyDeclaration(
-      fields,
-      parent: parent,
-    );
-    final file = 'proxy_${className.toLowerCase()}.dart';
-    declarationsFiles.add(file);
-    declarations.add(LanguageFile(
-      name: file,
-      code: proxyDeclaration,
     ));
   }
 
