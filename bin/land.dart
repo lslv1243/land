@@ -50,10 +50,10 @@ String _generateClass(String fields, {required String languageTag}) {
   code += 'import \'package:intl/intl.dart\';\n';
   code += 'import \'package:intl/locale.dart\';\n';
   code += 'class $className {\n';
-  code += 'String get localeName => locale.toLanguageTag();\n';
+  code += 'static const localeName = \'$languageTag\';\n';
   code += 'final Locale locale;\n';
   code += '\n';
-  code += '$className(): locale = Locale.parse(\'$languageTag\');\n';
+  code += '$className(): locale = Locale.parse(localeName);\n';
   code += '\n';
   code += fields;
   code += '}\n';
