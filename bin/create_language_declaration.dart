@@ -1,29 +1,36 @@
 import 'package:intl/intl.dart';
 import 'package:land/land.dart';
 
-class LanguageDeclaration {
-  final List<String> fieldsNames;
-  final String className;
-  final String localeName;
-  final String code;
+class LanguageField {
+  final List<String> parameters;
+  final String message;
 
-  LanguageDeclaration({
-    required this.fieldsNames,
-    required this.className,
-    required this.localeName,
-    required this.code,
-  });
+  LanguageField(this.parameters, this.message);
 }
 
-LanguageDeclaration createLanguageDeclaration(
+// String createSuperDeclaration(Map<String, String> fields) {
+//   var body = '';
+//   for (final field in fields.entries) {
+//     //
+//   }
+//   var code = '';
+//   code += 'import \'package:intl/locale.dart\';\n';
+//   return code;
+// }
+
+String createLanguageDeclaration(
   String localeName,
-  Map<String, String> fields,
+  Map<String, LanguageField> fields,
 ) {
   final parser = Parser();
   var body = '';
   for (final field in fields.entries) {
-    final expression = parser.parse(field.value);
-    body += _createGetterOrMethod(field.key, expression);
+    final expression = parser.parse(field.value.message);
+    body += _createGetterOrMethod(
+      field.key,
+      expression,
+      field.value.parameters,
+    );
     body += '\n';
   }
   final _class = _createClass(
@@ -37,12 +44,7 @@ LanguageDeclaration createLanguageDeclaration(
   code += 'import \'package:intl/locale.dart\';\n';
   code += 'import \'l10n.dart\';';
   code += _class.code;
-  return LanguageDeclaration(
-    fieldsNames: fields.keys.toList(),
-    className: _class.name,
-    localeName: localeName,
-    code: code,
-  );
+  return code;
 }
 
 class _Class {
@@ -88,18 +90,18 @@ _Class _createClass(
   return _Class(name: className, code: code);
 }
 
-Set<String> _parameterInUse(Expression expression) {
+Set<String> _usingParameters(Expression expression) {
   final parameters = <String>{};
   if (expression is ReferenceExpression) {
     parameters.add(expression.parameter);
   } else if (expression is MultipleExpression) {
     parameters.add(expression.parameter);
     for (final option in expression.options.values) {
-      parameters.addAll(_parameterInUse(option));
+      parameters.addAll(_usingParameters(option));
     }
   } else if (expression is ExpressionList) {
     for (final expression in expression.expressions) {
-      parameters.addAll(_parameterInUse(expression));
+      parameters.addAll(_usingParameters(expression));
     }
   }
   return parameters;
@@ -204,7 +206,7 @@ class _Visitor implements ExpressionVisitor<String> {
       }
       final other = value('other');
       if (other == null) {
-        throw Exception('Missing "other" for plurality in field $name.');
+        throw Exception('Missing "other" for plurality in field named "$name".');
       }
       code += 'other: $other,\n';
       code += ');\n';
@@ -222,16 +224,22 @@ class _Visitor implements ExpressionVisitor<String> {
   }
 }
 
-String _createGetterOrMethod(String name, Expression expression) {
+String _createGetterOrMethod(
+  String name,
+  Expression expression,
+  List<String> parameters,
+) {
   if (expression is LiteralExpression) {
     return 'String get $name => \'${expression.value}\';\n';
   }
 
-  // TODO: should have extracted parameters previously, or else
-  //  we can not guarantee order when changing language
-  final parameters = _parameterInUse(expression);
-  // TODO: use parameters in use to verify that the declared parameters are correct
-  //  instead of using it to declare the parameters
+  final usingParameters = _usingParameters(expression);
+  for (final parameter in usingParameters) {
+    if (!parameters.contains(parameter)) {
+      throw Exception('Parameter named "$parameter" not declared in field named "$name".');
+    }
+  }
+
   final parameterList = parameters.map((p) => 'Object $p').join(', ');
   final scope = _Scope();
   final visitor = _Visitor(scope);
