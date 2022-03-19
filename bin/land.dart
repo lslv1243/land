@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:intl/locale.dart';
 import 'package:land/land.dart';
 import 'package:path/path.dart';
+import 'package:dart_style/dart_style.dart';
 
 import 'format_expression.dart';
 
@@ -12,7 +13,7 @@ void main(List<String> arguments) async {
   final topLevelMultiple = parser
       .parse('{count,plural, zero{No dogs} =1{One dog} other{{count} dogs}}');
   final topLevelList = parser.parse(
-      'I have {count,plural, zero{no dogs} =1{one dog} other{{count} dogs}}');
+      'I have {count,plural, zero{no dogs} =1{one dog} other{{count} dogs}}.');
   final topLevelReference = parser.parse('{count}');
   final topLevelLiteral = parser.parse('Hello World!');
 
@@ -24,15 +25,15 @@ void main(List<String> arguments) async {
   code = _generateClass(code, languageTag: 'pt-BR');
   await writeFileAndFormat(code);
 
-  // final l10n = L10N_pt_BR();
+  // final l10n = L10NPtBr();
   // print(l10n.batata3);
   // print(l10n.batata1(10));
 }
 
 Future<void> writeFileAndFormat(String code) async {
+  code = DartFormatter().format(code);
   final file = File('lib/generated/generated.dart');
   await file.writeAsString(code);
-  await Process.run('dart', ['format', file.path]);
 }
 
 String _generateClass(String fields, {required String languageTag}) {
