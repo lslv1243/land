@@ -34,8 +34,10 @@ Future<void> formatAndWriteFiles(List<LanguageFile> files) async {
   final formatter = DartFormatter();
   final root = 'lib/generated';
 
-  for (final file in files) {
-    final formatted = formatter.format(file.code);
-    await File('$root/${file.name}').writeAsString(formatted);
+  for (final languageFile in files) {
+    final formatted = formatter.format(languageFile.code);
+    final file = File('$root/${languageFile.name}');
+    await file.create(recursive: true);
+    await file.writeAsString(formatted);
   }
 }
