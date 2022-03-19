@@ -262,7 +262,6 @@ class _Visitor implements ExpressionVisitor<String> {
 }
 
 String _createGetterOrMethodDeclaration(String name, List<String> parameters) {
-  // TODO: this logic differ from _createGetterOrMethod
   if (parameters.isEmpty) return 'String get $name;\n';
   final parameterList = parameters.map((p) => 'Object $p').join(', ');
   return 'String $name($parameterList);\n';
@@ -273,8 +272,9 @@ String _createGetterOrMethod(
   Expression expression,
   List<String> parameters,
 ) {
-  if (expression is LiteralExpression) {
-    return '@override String get $name => \'${expression.value}\';\n';
+  if (parameters.isEmpty) {
+    final literal = (expression as LiteralExpression).value;
+    return '@override String get $name => \'$literal\';\n';
   }
 
   final usingParameters = _usingParameters(expression);
