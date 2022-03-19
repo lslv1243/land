@@ -81,7 +81,7 @@ String _createProxyDeclaration(
     body += '\n';
   }
 
-  final proxyClass = _createProxyClass(
+  final classCode = _createProxyClass(
     body,
     supername: parent.className,
     proxyField: proxyField,
@@ -92,7 +92,7 @@ String _createProxyDeclaration(
   code += '\n';
   code += 'import \'${parent.fileName}\';\n';
   code += '\n';
-  code += proxyClass.code;
+  code += classCode;
   return code;
 }
 
@@ -106,7 +106,7 @@ String _createSuperDeclaration(
     body += _createGetterOrMethodDeclaration(field.key, field.value);
     body += '\n';
   }
-  final _classCode = _createSuperClass(
+  final classCode = _createSuperClass(
     body,
     name: className,
   );
@@ -119,7 +119,7 @@ String _createSuperDeclaration(
     code += '\n';
   }
   code += 'import \'package:intl/locale.dart\';\n';
-  code += _classCode;
+  code += classCode;
   return code;
 }
 
@@ -168,7 +168,7 @@ String _createLanguageDeclaration(
     body += '\n';
   }
 
-  final _class = _createClass(
+  final classCode = _createClass(
     body,
     localeName: localeName,
     supername: parent?.className,
@@ -182,22 +182,12 @@ String _createLanguageDeclaration(
     code += 'import \'${parent.fileName}\';\n';
     code += '\n';
   }
-  code += _class.code;
+  code += classCode;
 
   return code;
 }
 
-class _Class {
-  final String name;
-  final String code;
-
-  _Class({
-    required this.name,
-    required this.code,
-  });
-}
-
-_Class _createProxyClass(
+String _createProxyClass(
   String body, {
   required String supername,
   required String proxyField,
@@ -214,7 +204,7 @@ _Class _createProxyClass(
   code += '\n';
   code += body;
   code += '}\n';
-  return _Class(name: className, code: code);
+  return code;
 }
 
 String _createSuperClass(
@@ -230,7 +220,7 @@ String _createSuperClass(
   return code;
 }
 
-_Class _createClass(
+String _createClass(
   String body, {
   required String localeName,
   String? supername,
@@ -265,7 +255,7 @@ _Class _createClass(
   code += '\n';
   code += body;
   code += '}\n';
-  return _Class(name: className, code: code);
+  return code;
 }
 
 Set<String> _usingParameters(Expression expression) {
