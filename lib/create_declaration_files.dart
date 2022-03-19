@@ -8,8 +8,22 @@ class DeclarationFile {
   DeclarationFile({required this.name, required this.code});
 }
 
+class DeclarationField {
+  final String name;
+  final List<DeclarationFieldParameter> parameters;
+
+  DeclarationField(this.name, this.parameters);
+}
+
+class DeclarationFieldParameter {
+  final String name;
+  final String? type;
+
+  DeclarationFieldParameter(this.name, [this.type]);
+}
+
 List<DeclarationFile> createDeclarationFiles({
-  required Map<String, List<String>> fields,
+  required List<DeclarationField> fields,
   required Map<String, Map<String, String>> locales,
   String className = 'L10N',
   bool generateProxy = false,
@@ -52,11 +66,13 @@ List<DeclarationFile> createDeclarationFiles({
     ));
   }
 
+  // for faster lookup
+  final fieldsMap = {for (var field in fields) field.name: field};
   for (final locale in locales.entries) {
     final declaration = _createLanguageDeclaration(
       locale.key,
       locale.value,
-      fields,
+      fieldsMap,
       parent: parent,
     );
 
@@ -85,17 +101,17 @@ List<DeclarationFile> createDeclarationFiles({
 }
 
 String _createProxyDeclaration(
-  Map<String, List<String>> fields, {
+  List<DeclarationField> fields, {
   required _LanguageSuper parent,
   String proxyField = 'proxy',
   bool emitLoader = false,
 }) {
   var body = '';
-  for (final field in fields.entries) {
+  for (final field in fields) {
     body += '@override\n';
     body += _createGetterOrMethodProxy(
-      field.key,
-      field.value,
+      field.name,
+      field.parameters,
       proxyField: proxyField,
     );
     body += '\n';
@@ -118,15 +134,18 @@ String _createProxyDeclaration(
 }
 
 String _createSuperDeclaration(
-  Map<String, List<String>> fields, {
+  List<DeclarationField> fields, {
   required String className,
   Map<String, String>? supportedLocales,
   List<String>? languagesDeclarationsFiles,
   String? proxyDeclarationFile,
 }) {
   var body = '';
-  for (final field in fields.entries) {
-    body += _createGetterOrMethodDeclaration(field.key, field.value);
+  for (final field in fields) {
+    body += _createGetterOrMethodDeclaration(
+      field.name,
+      field.parameters,
+    );
     body += '\n';
   }
   final classCode = _createSuperClass(
@@ -183,22 +202,22 @@ class _LanguageDeclaration {
 _LanguageDeclaration _createLanguageDeclaration(
   String localeName,
   Map<String, String> messages,
-  Map<String, List<String>> fields, {
+  Map<String, DeclarationField> fieldsMap, {
   _LanguageSuper? parent,
 }) {
   final parser = Parser();
   var body = '';
 
   // make sure we have all fields declared in this locale
-  for (final fieldName in fields.keys) {
-    if (!messages.containsKey(fieldName)) {
+  for (final field in fieldsMap.values) {
+    if (!messages.containsKey(field.name)) {
       throw Exception(
-          'Missing message for field named "$fieldName" in locale "$localeName".');
+          'Missing message for field named "${field.name}" in locale "$localeName".');
     }
   }
 
   for (final message in messages.entries) {
-    final field = fields[message.key];
+    final field = fieldsMap[message.key];
     if (field == null) {
       throw Exception(
           'Unexpected field named "${message.key}" in locale "$localeName".');
@@ -210,7 +229,7 @@ _LanguageDeclaration _createLanguageDeclaration(
     body += _createGetterOrMethod(
       message.key,
       expression,
-      field,
+      field.parameters,
     );
     body += '\n';
   }
@@ -480,23 +499,24 @@ class _Visitor implements ExpressionVisitor<String> {
 
 String _createGetterOrMethodProxy(
   String name,
-  List<String> parameters, {
+  List<DeclarationFieldParameter> parameters, {
   required String proxyField,
 }) {
   if (parameters.isEmpty) return 'String get $name => $proxyField.$name;\n';
-  final parameterList = parameters.map((p) => 'Object $p').join(', ');
-  final argumentsList = parameters.join(', ');
+  final parameterList = parameters.forCode();
+  final argumentsList = parameters.map((p) => p.name).join(', ');
   return 'String $name($parameterList) => $proxyField.$name($argumentsList);\n';
 }
 
-String _createGetterOrMethodDeclaration(String name, List<String> parameters) {
+String _createGetterOrMethodDeclaration(
+    String name, List<DeclarationFieldParameter> parameters) {
   if (parameters.isEmpty) return 'String get $name;\n';
-  final parameterList = parameters.map((p) => 'Object $p').join(', ');
+  final parameterList = parameters.forCode();
   return 'String $name($parameterList);\n';
 }
 
-String _createGetterOrMethod(
-    String name, Expression expression, List<String> parameters) {
+String _createGetterOrMethod(String name, Expression expression,
+    List<DeclarationFieldParameter> parameters) {
   if (parameters.isEmpty) {
     final literal = (expression as LiteralExpression).value;
     return 'String get $name => \'$literal\';\n';
@@ -504,13 +524,14 @@ String _createGetterOrMethod(
 
   final usingParameters = _usingParameters(expression);
   for (final parameter in usingParameters) {
-    if (!parameters.contains(parameter)) {
+    final index = parameters.indexWhere((p) => p.name == parameter);
+    if (index == -1) {
       throw Exception(
           'Parameter named "$parameter" not declared in field named "$name".');
     }
   }
 
-  final parameterList = parameters.map((p) => 'Object $p').join(', ');
+  final parameterList = parameters.forCode();
   final scope = _Scope();
   final visitor = _Visitor(scope);
   final value = expression.visit(visitor);
@@ -525,4 +546,13 @@ class _UniqueVar {
   var count = 0;
 
   String create() => 'var${count++}';
+}
+
+extension on List<DeclarationFieldParameter> {
+  String forCode() {
+    return map((parameter) {
+      final type = parameter.type ?? 'Object';
+      return '$type ${parameter.name}';
+    }).join(', ');
+  }
 }

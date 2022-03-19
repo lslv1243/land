@@ -6,12 +6,12 @@ import 'package:path/path.dart' as p;
 import 'package:land/land.dart';
 
 void main(List<String> arguments) async {
-  final fields = <String, List<String>>{
-    'helloWorld': [],
-    'count': ['count'],
-    'nDogs': ['count'],
-    'iHaveNDogs': ['count'],
-  };
+  final fields = <DeclarationField>[
+    DeclarationField('helloWorld', []),
+    DeclarationField('count', [DeclarationFieldParameter('count')]),
+    DeclarationField('nDogs', [DeclarationFieldParameter('count')]),
+    DeclarationField('iHaveNDogs', [DeclarationFieldParameter('count')]),
+  ];
 
   final messagesEn = <String, String>{
     'helloWorld': 'Hello World!',
