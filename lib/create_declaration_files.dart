@@ -14,7 +14,19 @@ List<DeclarationFile> createDeclarationFiles({
   String className = 'L10N',
   bool generateProxy = false,
   bool emitSupportedLocales = false,
+  bool emitProxyLoader = false,
 }) {
+  if (emitProxyLoader) {
+    if (!generateProxy) {
+      throw Exception(
+          'It is necessary to generate proxy to emit the proxy loader.');
+    }
+    if (!emitSupportedLocales) {
+      throw Exception(
+          'It is necessary to emit supported locales to emit the proxy loader.');
+    }
+  }
+
   final declarations = <DeclarationFile>[];
 
   final parent = _LanguageSuper(
@@ -30,7 +42,7 @@ List<DeclarationFile> createDeclarationFiles({
     final proxyDeclaration = _createProxyDeclaration(
       fields,
       parent: parent,
-      emitLoader: emitSupportedLocales,
+      emitLoader: emitProxyLoader,
     );
     final file = 'proxy_${className.toLowerCase()}.dart';
     proxyDeclarationFile = file;

@@ -38,6 +38,7 @@ void main(List<String> arguments) async {
     },
     generateProxy: true,
     emitSupportedLocales: true,
+    emitProxyLoader: true,
   );
 
   await formatAndWriteFiles(
