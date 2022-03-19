@@ -133,27 +133,25 @@ class CodeBlockVisitor implements ExpressionVisitor<String> {
     }
 
     String select() {
-      scope = scope.child();
-
       var code = 'final String $name;\n';
       code += 'switch (${expression.parameter}){\n';
 
       for (final option in expression.options.entries) {
         code += 'case \'${option.key}\':\n';
-        code += '$name = ${value(option.key)};\n';
+        scope = scope.child();
+        final variable = value(option.key);
+        code += scope.declarations;
+        scope = scope.parent!;
+        code += '$name = $variable;\n';
         code += 'break;\n';
       }
       code += 'default:\n';
       code += 'throw UnimplementedError();\n';
       code += '}\n';
-      code = scope.declarations + code;
-      scope = scope.parent!;
       return code;
     }
 
     String plural() {
-      scope = scope.child();
-
       var code = 'final $name = Intl.pluralLogic(\n';
       code += '${expression.parameter} as num,\n';
       code += 'locale: localeName,\n';
@@ -184,9 +182,6 @@ class CodeBlockVisitor implements ExpressionVisitor<String> {
       }
       code += 'other: $other,\n';
       code += ');\n';
-
-      code = scope.declarations + code;
-      scope = scope.parent!;
       return code;
     }
 
@@ -216,7 +211,8 @@ String generateEntryCode(String name, Expression expression) {
   final visitor = CodeBlockVisitor(scope);
   final value = expression.visit(visitor);
   var code = 'String $name($parameterList) {\n';
-  code += scope.declarations + 'return $value;\n';
+  code += scope.declarations;
+  code += 'return $value;\n';
   code += '}\n';
   return code;
 }
