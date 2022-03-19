@@ -39,17 +39,11 @@ List<LanguageFile> createDeclarationFiles({
     ));
   }
 
-  var superDeclaration = _createSuperDeclaration(fields, className: className);
-
-  // prepend super with exports to facilitate when importing
-  // TODO: move this logic to inside create super declaration?
-  var exports = '';
-  for (final file in declarationsFiles) {
-    exports += 'export \'$file\';\n';
-  }
-  exports += '\n';
-  superDeclaration = exports + superDeclaration;
-
+  final superDeclaration = _createSuperDeclaration(
+    fields,
+    className: className,
+    declarationsFiles: declarationsFiles,
+  );
   declarations.add(LanguageFile(
     name: filename(),
     code: superDeclaration,
@@ -58,8 +52,11 @@ List<LanguageFile> createDeclarationFiles({
   return declarations;
 }
 
-String _createSuperDeclaration(Map<String, List<String>> fields,
-    {required String className}) {
+String _createSuperDeclaration(
+  Map<String, List<String>> fields, {
+  required String className,
+  List<String>? declarationsFiles,
+}) {
   var body = '';
   for (final field in fields.entries) {
     body += _createGetterOrMethodDeclaration(field.key, field.value);
@@ -71,6 +68,12 @@ String _createSuperDeclaration(Map<String, List<String>> fields,
   );
 
   var code = '';
+  if (declarationsFiles != null) {
+    for (final file in declarationsFiles) {
+      code += 'export \'$file\';\n';
+    }
+    code += '\n';
+  }
   code += 'import \'package:intl/locale.dart\';\n';
   code += _classCode;
   return code;
