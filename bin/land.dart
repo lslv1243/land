@@ -37,6 +37,7 @@ void main(List<String> arguments) async {
       'pt': messagesPt,
     },
     generateProxy: true,
+    emitSupportedLocales: true,
   );
 
   await formatAndWriteFiles(

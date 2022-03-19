@@ -13,6 +13,7 @@ List<DeclarationFile> createDeclarationFiles({
   required Map<String, Map<String, String>> locales,
   String className = 'L10N',
   bool generateProxy = false,
+  bool emitSupportedLocales = false,
 }) {
   final declarations = <DeclarationFile>[];
 
@@ -21,7 +22,9 @@ List<DeclarationFile> createDeclarationFiles({
     className: className,
   );
 
-  final declarationsFiles = <String>[];
+  final languagesDeclarationsFiles = <String>[];
+  String? proxyDeclarationFile;
+  final localesClasses = <String, String>{};
 
   if (generateProxy) {
     final proxyDeclaration = _createProxyDeclaration(
@@ -29,7 +32,7 @@ List<DeclarationFile> createDeclarationFiles({
       parent: parent,
     );
     final file = 'proxy_${className.toLowerCase()}.dart';
-    declarationsFiles.add(file);
+    proxyDeclarationFile = file;
     declarations.add(DeclarationFile(
       name: file,
       code: proxyDeclaration,
@@ -45,17 +48,20 @@ List<DeclarationFile> createDeclarationFiles({
     );
 
     final file = '${className.toLowerCase()}_${locale.key.toLowerCase()}.dart';
-    declarationsFiles.add(file);
+    languagesDeclarationsFiles.add(file);
+    localesClasses[locale.key] = declaration.className;
     declarations.add(DeclarationFile(
       name: file,
-      code: declaration,
+      code: declaration.code,
     ));
   }
 
   final superDeclaration = _createSuperDeclaration(
     fields,
     className: parent.className,
-    declarationsFiles: declarationsFiles,
+    languagesDeclarationsFiles: languagesDeclarationsFiles,
+    proxyDeclarationFile: proxyDeclarationFile,
+    supportedLocales: emitSupportedLocales ? localesClasses : null,
   );
   declarations.add(DeclarationFile(
     name: parent.fileName,
@@ -99,7 +105,9 @@ String _createProxyDeclaration(
 String _createSuperDeclaration(
   Map<String, List<String>> fields, {
   required String className,
-  List<String>? declarationsFiles,
+  Map<String, String>? supportedLocales,
+  List<String>? languagesDeclarationsFiles,
+  String? proxyDeclarationFile,
 }) {
   var body = '';
   for (final field in fields.entries) {
@@ -109,16 +117,30 @@ String _createSuperDeclaration(
   final classCode = _createSuperClass(
     body,
     name: className,
+    supportedLocales: supportedLocales,
   );
 
   var code = '';
-  if (declarationsFiles != null) {
-    for (final file in declarationsFiles) {
+  final allDeclarationFiles = [
+    if (proxyDeclarationFile != null) proxyDeclarationFile,
+    if (languagesDeclarationsFiles != null) ...languagesDeclarationsFiles,
+  ];
+  if (allDeclarationFiles.isNotEmpty) {
+    for (final file in allDeclarationFiles) {
       code += 'export \'$file\';\n';
     }
     code += '\n';
   }
   code += 'import \'package:intl/locale.dart\';\n';
+  code += '\n';
+  // if we wanna generate the supported locales, make sure to import the files
+  // we assume the declarations files will contain all of the supported locales
+  if (supportedLocales != null) {
+    for (final file in languagesDeclarationsFiles!) {
+      code += 'import \'$file\';\n';
+    }
+    code += '\n';
+  }
   code += classCode;
   return code;
 }
@@ -133,7 +155,17 @@ class _LanguageSuper {
   });
 }
 
-String _createLanguageDeclaration(
+class _LanguageDeclaration {
+  final String className;
+  final String code;
+
+  _LanguageDeclaration({
+    required this.className,
+    required this.code,
+  });
+}
+
+_LanguageDeclaration _createLanguageDeclaration(
   String localeName,
   Map<String, String> messages,
   Map<String, List<String>> fields, {
@@ -168,7 +200,7 @@ String _createLanguageDeclaration(
     body += '\n';
   }
 
-  final classCode = _createClass(
+  final _class = _createClass(
     body,
     localeName: localeName,
     supername: parent?.className,
@@ -182,9 +214,12 @@ String _createLanguageDeclaration(
     code += 'import \'${parent.fileName}\';\n';
     code += '\n';
   }
-  code += classCode;
+  code += _class.code;
 
-  return code;
+  return _LanguageDeclaration(
+    className: _class.name,
+    code: code,
+  );
 }
 
 String _createProxyClass(
@@ -210,17 +245,36 @@ String _createProxyClass(
 String _createSuperClass(
   String body, {
   required String name,
+  Map<String, String>? supportedLocales,
 }) {
   var code = '';
   code += 'abstract class $name {\n';
   code += 'Locale get locale;\n';
   code += '\n';
+  if (supportedLocales != null) {
+    code += 'static final locales = <String, Type>{\n';
+    for (final locale in supportedLocales.entries) {
+      code += '\'${locale.key}\': ${locale.value},\n';
+    }
+    code += '};\n';
+    code += '\n';
+  }
   code += body;
   code += '}\n';
   return code;
 }
 
-String _createClass(
+class _LanguageClass {
+  final String name;
+  final String code;
+
+  _LanguageClass({
+    required this.name,
+    required this.code,
+  });
+}
+
+_LanguageClass _createClass(
   String body, {
   required String localeName,
   String? supername,
@@ -255,7 +309,11 @@ String _createClass(
   code += '\n';
   code += body;
   code += '}\n';
-  return code;
+
+  return _LanguageClass(
+    name: className,
+    code: code,
+  );
 }
 
 Set<String> _usingParameters(Expression expression) {
