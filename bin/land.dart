@@ -25,6 +25,7 @@ void main(List<String> arguments) async {
     locales: {
       'pt_BR': messagesPtBr,
     },
+    generateProxy: true,
   );
 
   await formatAndWriteFiles(files);

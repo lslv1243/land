@@ -12,20 +12,12 @@ List<LanguageFile> createDeclarationFiles({
   required Map<String, List<String>> fields,
   required Map<String, Map<String, String>> locales,
   String className = 'L10N',
+  bool generateProxy = false,
 }) {
   final declarations = <LanguageFile>[];
 
-  String filename([String? locale]) {
-    var name = className.toLowerCase();
-    if (locale != null) {
-      name += '_${locale.toLowerCase()}';
-    }
-    name += '.dart';
-    return name;
-  }
-
   final parent = _LanguageSuper(
-    fileName: filename(),
+    fileName: '${className.toLowerCase()}.dart',
     className: className,
   );
 
@@ -39,11 +31,24 @@ List<LanguageFile> createDeclarationFiles({
       parent: parent,
     );
 
-    final file = filename(locale.key);
+    final file = '${className.toLowerCase()}_${locale.key.toLowerCase()}.dart';
     declarationsFiles.add(file);
     declarations.add(LanguageFile(
       name: file,
       code: declaration,
+    ));
+  }
+
+  if (generateProxy) {
+    final proxyDeclaration = _createProxyDeclaration(
+      fields,
+      parent: parent,
+    );
+    final file = 'proxy_${className.toLowerCase()}.dart';
+    declarationsFiles.add(file);
+    declarations.add(LanguageFile(
+      name: file,
+      code: proxyDeclaration,
     ));
   }
 
@@ -58,6 +63,37 @@ List<LanguageFile> createDeclarationFiles({
   ));
 
   return declarations;
+}
+
+String _createProxyDeclaration(
+  Map<String, List<String>> fields, {
+  required _LanguageSuper parent,
+  String proxyField = 'proxy',
+}) {
+  var body = '';
+  for (final field in fields.entries) {
+    body += '@override\n';
+    body += _createGetterOrMethodProxy(
+      field.key,
+      field.value,
+      proxyField: proxyField,
+    );
+    body += '\n';
+  }
+
+  final proxyClass = _createProxyClass(
+    body,
+    supername: parent.className,
+    proxyField: proxyField,
+  );
+
+  var code = '';
+  code += 'import \'package:intl/locale.dart\';\n';
+  code += '\n';
+  code += 'import \'${parent.fileName}\';\n';
+  code += '\n';
+  code += proxyClass.code;
+  return code;
 }
 
 String _createSuperDeclaration(
@@ -159,6 +195,26 @@ class _Class {
     required this.name,
     required this.code,
   });
+}
+
+_Class _createProxyClass(
+  String body, {
+  required String supername,
+  required String proxyField,
+}) {
+  final className = 'Proxy$supername';
+  var code = '';
+  code += 'class $className implements $supername {\n';
+  code += '@override\n';
+  code += 'Locale get locale => $proxyField.locale;\n';
+  code += '\n';
+  code += '$supername $proxyField;\n';
+  code += '\n';
+  code += '$className(this.$proxyField);\n';
+  code += '\n';
+  code += body;
+  code += '}\n';
+  return _Class(name: className, code: code);
 }
 
 String _createSuperClass(
@@ -345,6 +401,17 @@ class _Visitor implements ExpressionVisitor<String> {
         throw UnimplementedError();
     }
   }
+}
+
+String _createGetterOrMethodProxy(
+  String name,
+  List<String> parameters, {
+  required String proxyField,
+}) {
+  if (parameters.isEmpty) return 'String get $name => $proxyField.$name;\n';
+  final parameterList = parameters.map((p) => 'Object $p').join(', ');
+  final argumentsList = parameters.join(', ');
+  return 'String $name($parameterList) => $proxyField.$name($argumentsList);\n';
 }
 
 String _createGetterOrMethodDeclaration(String name, List<String> parameters) {
