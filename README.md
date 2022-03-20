@@ -90,3 +90,7 @@ Update your `.gitignore` to ignore the generated files.
 
 ### 4. Run `land`
 After running land all the files should be generated to be used. If it is a Flutter project it will contain the glue to use in a Flutter application. More details about Flutter localization at: https://docs.flutter.dev/development/accessibility-and-localization/internationalization.
+
+---
+
+NOTE: I highly recommend [downloading the tool](https://github.com/lslv1243/land.git), building it, making it available globally and use it this way instead of using `flutter pub run`.
