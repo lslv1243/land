@@ -271,11 +271,11 @@ String _createProxyClass(
   code += '$supername $proxyField;\n';
   code += '\n';
   if (emitLoader) {
-    code += 'void load(String locale) {\n';
+    code += 'void load(Locale locale) {\n';
     code += '$proxyField = $supername.locales[locale]!();\n';
     code += '}\n';
     code += '\n';
-    code += 'factory $className.loading(String locale) {\n';
+    code += 'factory $className.loading(Locale locale) {\n';
     code += 'final proxy = $supername.locales[locale]!();\n';
     code += 'return $className(proxy);\n';
     code += '}\n';
@@ -298,9 +298,9 @@ String _createSuperClass(
   code += 'Locale get locale;\n';
   code += '\n';
   if (supportedLocales != null) {
-    code += 'static final locales = <String, $name Function()>{\n';
+    code += 'static final locales = <Locale, $name Function()>{\n';
     for (final locale in supportedLocales.entries) {
-      code += '\'${locale.key}\': () => ${locale.value}(),\n';
+      code += 'Locale.parse(\'${locale.key}\'): () => ${locale.value}(),\n';
     }
     code += '};\n';
     code += '\n';
