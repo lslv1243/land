@@ -346,8 +346,7 @@ _DelegateClass _createFlutterDelegateClass({required String supername}) {
   code += '\n';
   code += '@override\n';
   code += 'Future<$supername> load(Locale locale) {\n';
-  code +=
-    'return SynchronousFuture<$supername>($supername.locales[locale]);\n';
+  code += 'return SynchronousFuture<$supername>($supername.locales[locale]);\n';
   code += '}\n';
   code += '@override\n';
   code +=
