@@ -313,11 +313,11 @@ String _createProxyClass(
   code += '\n';
   if (emitLoader) {
     code += 'void load(Locale locale) {\n';
-    code += '$proxyField = $supername.locales[locale];\n';
+    code += '$proxyField = $supername.locales[locale]!;\n';
     code += '}\n';
     code += '\n';
     code += 'factory $className.loading(Locale locale) {\n';
-    code += 'final proxy = $supername.locales[locale];\n';
+    code += 'final proxy = $supername.locales[locale]!;\n';
     code += 'return $className(proxy);\n';
     code += '}\n';
     code += '\n';
@@ -346,7 +346,7 @@ _DelegateClass _createFlutterDelegateClass({required String supername}) {
   code += '\n';
   code += '@override\n';
   code += 'Future<$supername> load(Locale locale) {\n';
-  code += 'return SynchronousFuture<$supername>($supername.locales[locale]);\n';
+  code += 'return SynchronousFuture<$supername>($supername.locales[locale]!);\n';
   code += '}\n';
   code += '@override\n';
   code +=
