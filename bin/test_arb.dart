@@ -5,10 +5,12 @@ void main() async {
     'l10n',
     configurationFile: 'app_en.arb',
   );
-  
+
   final files = createDeclarationFiles(
     fields: languageInfo.fields,
     locales: languageInfo.locales,
+    emitSupportedLocales: true,
+    emitFlutterGlue: true,
   );
 
   await formatAndWriteFiles(

@@ -29,6 +29,7 @@ List<DeclarationFile> createDeclarationFiles({
   bool generateProxy = false,
   bool emitSupportedLocales = false,
   bool emitProxyLoader = false,
+  bool emitFlutterGlue = false,
 }) {
   if (emitProxyLoader) {
     if (!generateProxy) {
@@ -38,6 +39,12 @@ List<DeclarationFile> createDeclarationFiles({
     if (!emitSupportedLocales) {
       throw Exception(
           'It is necessary to emit supported locales to emit the proxy loader.');
+    }
+  }
+  if (emitFlutterGlue) {
+    if (!emitSupportedLocales) {
+      throw Exception(
+          'It is necessary to emit supported locales to emit the flutter glue.');
     }
   }
 
@@ -91,6 +98,7 @@ List<DeclarationFile> createDeclarationFiles({
     languagesDeclarationsFiles: languagesDeclarationsFiles,
     proxyDeclarationFile: proxyDeclarationFile,
     supportedLocales: emitSupportedLocales ? localesClasses : null,
+    emitFlutterGlue: emitFlutterGlue,
   );
   declarations.add(DeclarationFile(
     name: parent.fileName,
@@ -139,6 +147,7 @@ String _createSuperDeclaration(
   Map<String, String>? supportedLocales,
   List<String>? languagesDeclarationsFiles,
   String? proxyDeclarationFile,
+  bool emitFlutterGlue = false,
 }) {
   var body = '';
   for (final field in fields) {
@@ -148,10 +157,15 @@ String _createSuperDeclaration(
     );
     body += '\n';
   }
+  _DelegateClass? delegateClass;
+  if (emitFlutterGlue) {
+    delegateClass = _createFlutterDelegateClass(supername: className);
+  }
   final classCode = _createSuperClass(
     body,
     name: className,
     supportedLocales: supportedLocales,
+    flutterDelegateClass: delegateClass?.name,
   );
 
   var code = '';
@@ -166,6 +180,9 @@ String _createSuperDeclaration(
     code += '\n';
   }
   code += 'import \'package:intl/locale.dart\';\n';
+  if (emitFlutterGlue) {
+    code += 'import \'package:flutter/widgets.dart\';\n';
+  }
   code += '\n';
   // if we wanna generate the supported locales, make sure to import the files
   // we assume the declarations files will contain all of the supported locales
@@ -176,6 +193,10 @@ String _createSuperDeclaration(
     code += '\n';
   }
   code += classCode;
+  if (delegateClass != null) {
+    code += '\n';
+    code += delegateClass.code;
+  }
   return code;
 }
 
@@ -288,10 +309,41 @@ String _createProxyClass(
   return code;
 }
 
+class _DelegateClass {
+  final String name;
+  final String code;
+
+  _DelegateClass({
+    required this.name,
+    required this.code,
+  });
+}
+
+_DelegateClass _createFlutterDelegateClass({required String supername}) {
+  final classname = '_${supername}Delegate';
+  var code = 'class $classname extends LocalizationsDelegate<$supername> {\n';
+  code += 'const $classname();\n';
+  code += '\n';
+  code += '@override\n';
+  code += 'Future<$supername> load(Locale locale) {\n';
+  code +=
+      'return SynchronousFuture<$supername>($supername.locales[locale]!);\n';
+  code += '}\n';
+  code += '@override\n';
+  code +=
+      'bool isSupported(Locale locale) => $supername.supportedLocales.contains(locale);\n';
+  code += '\n';
+  code += '@override\n';
+  code += 'bool shouldReload($classname old) => false;\n';
+  code += '}\n';
+  return _DelegateClass(name: classname, code: code);
+}
+
 String _createSuperClass(
   String body, {
   required String name,
   Map<String, String>? supportedLocales,
+  required String? flutterDelegateClass,
 }) {
   var code = '';
   code += 'abstract class $name {\n';
@@ -304,11 +356,28 @@ String _createSuperClass(
     }
     code += '};\n';
     code += '\n';
-    code += 'static final supportedLocales = <Locale>{';
+    code += 'static final supportedLocales = <Locale>[\n';
     for (final locale in supportedLocales.entries) {
       code += '${_localeAsCode(locale.key)},\n';
     }
-    code += '};\n';
+    code += '];\n';
+    code += '\n';
+  }
+  if (flutterDelegateClass != null) {
+    code += 'static $name of(BuildContext context) {\n';
+    code += 'return Localizations.of<$name>(context, $name)!;\n';
+    code += '}\n';
+    code += '\n';
+    code +=
+        'static const LocalizationsDelegate<$name> delegate = $flutterDelegateClass();\n';
+    code += '\n';
+    code +=
+        'static const localizationsDelegates = <LocalizationsDelegate<dynamic>>[\n';
+    code += 'delegate,\n';
+    code += 'GlobalMaterialLocalizations.delegate,\n';
+    code += 'GlobalCupertinoLocalizations.delegate,\n';
+    code += 'GlobalWidgetsLocalizations.delegate,\n';
+    code += '];\n';
     code += '\n';
   }
   code += body;
