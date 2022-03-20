@@ -1,4 +1,5 @@
 import 'package:intl/intl.dart';
+import 'package:intl/locale.dart';
 import 'package:land/land.dart';
 
 class DeclarationFile {
@@ -57,7 +58,7 @@ List<DeclarationFile> createDeclarationFiles({
 
   final languagesDeclarationsFiles = <String>[];
   String? proxyDeclarationFile;
-  final localesClasses = <String, String>{};
+  final localesClasses = <Locale, String>{};
 
   if (generateProxy) {
     final proxyDeclaration = _createProxyDeclaration(
@@ -77,8 +78,9 @@ List<DeclarationFile> createDeclarationFiles({
   // for faster lookup
   final fieldsMap = {for (var field in fields) field.name: field};
   for (final locale in locales.entries) {
+    final localeObj = Locale.parse(locale.key);
     final declaration = _createLanguageDeclaration(
-      locale.key,
+      localeObj,
       locale.value,
       fieldsMap,
       parent: parent,
@@ -87,7 +89,7 @@ List<DeclarationFile> createDeclarationFiles({
 
     final file = '${className.toLowerCase()}_${locale.key.toLowerCase()}.dart';
     languagesDeclarationsFiles.add(file);
-    localesClasses[locale.key] = declaration.className;
+    localesClasses[localeObj] = declaration.className;
     declarations.add(DeclarationFile(
       name: file,
       code: declaration.code,
@@ -151,7 +153,7 @@ String _createProxyDeclaration(
 String _createSuperDeclaration(
   List<DeclarationField> fields, {
   required String className,
-  Map<String, String>? supportedLocales,
+  Map<Locale, String>? supportedLocales,
   List<String>? languagesDeclarationsFiles,
   String? proxyDeclarationFile,
   bool emitFlutterGlue = false,
@@ -233,7 +235,7 @@ class _LanguageDeclaration {
 }
 
 _LanguageDeclaration _createLanguageDeclaration(
-  String localeName,
+  Locale locale,
   Map<String, String> messages,
   Map<String, DeclarationField> fieldsMap, {
   _LanguageSuper? parent,
@@ -246,7 +248,7 @@ _LanguageDeclaration _createLanguageDeclaration(
   for (final field in fieldsMap.values) {
     if (!messages.containsKey(field.name)) {
       throw Exception(
-          'Missing message for field named "${field.name}" in locale "$localeName".');
+          'Missing message for field named "${field.name}" in locale "$locale".');
     }
   }
 
@@ -254,7 +256,7 @@ _LanguageDeclaration _createLanguageDeclaration(
     final field = fieldsMap[message.key];
     if (field == null) {
       throw Exception(
-          'Unexpected field named "${message.key}" in locale "$localeName".');
+          'Unexpected field named "${message.key}" in locale "$locale".');
     }
     final expression = parser.parse(message.value);
     if (parent != null) {
@@ -270,7 +272,7 @@ _LanguageDeclaration _createLanguageDeclaration(
 
   final _class = _createClass(
     body,
-    localeName: localeName,
+    locale: locale,
     supername: parent?.className,
     useFlutterIntl: useFlutterIntl,
   );
@@ -360,7 +362,7 @@ _DelegateClass _createFlutterDelegateClass({required String supername}) {
 String _createSuperClass(
   String body, {
   required String name,
-  Map<String, String>? supportedLocales,
+  Map<Locale, String>? supportedLocales,
   required String? flutterDelegateClass,
   required bool useFlutterIntl,
 }) {
@@ -371,20 +373,14 @@ String _createSuperClass(
   if (supportedLocales != null) {
     code += 'static final locales = <Locale, $name Function()>{\n';
     for (final locale in supportedLocales.entries) {
-      final localeCode = _localeAsCode(
-        locale.key,
-        useFlutterIntl: useFlutterIntl,
-      );
+      final localeCode = locale.key.forCode(useFlutterIntl);
       code += '$localeCode: () => ${locale.value}(),\n';
     }
     code += '};\n';
     code += '\n';
     code += 'static final supportedLocales = <Locale>[\n';
     for (final locale in supportedLocales.entries) {
-      final localeCode = _localeAsCode(
-        locale.key,
-        useFlutterIntl: useFlutterIntl,
-      );
+      final localeCode = locale.key.forCode(useFlutterIntl);
       code += '$localeCode,\n';
     }
     code += '];\n';
@@ -424,7 +420,7 @@ class _LanguageClass {
 
 _LanguageClass _createClass(
   String body, {
-  required String localeName,
+  required Locale locale,
   String? supername,
   required bool useFlutterIntl,
 }) {
@@ -435,30 +431,22 @@ _LanguageClass _createClass(
         .join();
   }
 
-  final _localeName = Intl.canonicalizedLocale(localeName);
-  if (_localeName != localeName) {
-    throw ArgumentError.value(
-        localeName, 'localeName', 'Rename to $_localeName.');
-  }
-  final className = '${supername ?? 'Language'}${capitalizeTag(_localeName)}';
+  final localeName = Intl.canonicalizedLocale(locale.toLanguageTag());
+  final className = '${supername ?? 'Language'}${capitalizeTag(localeName)}';
   var code = '';
   code += 'class $className ';
   if (supername != null) {
     code += 'implements $supername ';
   }
   code += '{\n';
-  code += 'static const localeName = \'$_localeName\';\n';
+  code += 'static const localeName = \'$localeName\';\n';
   code += '\n';
   if (supername != null) {
     code += '@override\n';
   }
   code += 'final Locale locale;\n';
   code += '\n';
-  final localeCode = _localeAsCode(
-    'localeName',
-    useFlutterIntl: useFlutterIntl,
-    literal: false,
-  );
+  final localeCode = locale.forCode(useFlutterIntl);
   code += '$className(): locale = $localeCode;\n';
   code += '\n';
   code += body;
@@ -668,16 +656,18 @@ extension on List<DeclarationFieldParameter> {
   }
 }
 
-String _localeAsCode(
-  String locale, {
-  required bool useFlutterIntl,
-  bool literal = true,
-}) {
-  if (literal) {
-    locale = '\'$locale\'';
+extension on Locale {
+  String forCode(bool flutterIntl) {
+    var code = 'Locale.fromSubtags(languageCode: \'$languageCode\'';
+    if (countryCode != null) {
+      code += ', countryCode: \'$countryCode\'';
+    }
+    if (scriptCode != null) {
+      code += ', scriptCode: \'$scriptCode\'';
+    }
+    code += ')';
+    return code;
   }
-  if (useFlutterIntl) return 'Locale($locale)';
-  return 'Locale.parse($locale)';
 }
 
 String _cleanLiteral(String literal) {
