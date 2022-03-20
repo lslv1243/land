@@ -3,7 +3,7 @@
 Tool for generating localization files to be used in Dart applications.
 
 - Supports complex ICU messages
-- Works on non Flutter apps (WIP)
+- Works on non Flutter apps
 
 ---
 
