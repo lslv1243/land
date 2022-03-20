@@ -22,11 +22,13 @@ void main() async {
     configurationFile: templateArbFile,
   );
 
+  final isFlutter = await _isFlutterProject();
+
   final files = createDeclarationFiles(
     fields: languageInfo.fields,
     locales: languageInfo.locales,
     className: outputClass,
-    emitFlutterGlue: true,
+    emitFlutterGlue: isFlutter,
     emitSupportedLocales: true,
   );
 
@@ -35,4 +37,17 @@ void main() async {
     path: outputDirectory,
     recreateFolder: true,
   );
+}
+
+Future<bool> _isFlutterProject() async {
+  final String pubspec;
+  try {
+    pubspec = await File('pubspec.yaml').readAsString();
+  } catch (_) {
+    // if we don't find a pubspec.yaml we just assume
+    // it is not flutter and go on with our lives
+    return false;
+  }
+  final pubspecYaml = loadYaml(pubspec);
+  return pubspecYaml['dependencies']?['flutter'] != null;
 }
