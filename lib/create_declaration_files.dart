@@ -27,15 +27,15 @@ List<DeclarationFile> createDeclarationFiles({
   required List<DeclarationField> fields,
   required Map<String, Map<String, String>> locales,
   String className = 'L10N',
-  bool generateProxy = false,
+  bool emitProxy = false,
   bool emitSupportedLocales = false,
   bool emitProxyLoader = false,
   bool emitFlutterGlue = false,
 }) {
   if (emitProxyLoader) {
-    if (!generateProxy) {
+    if (!emitProxy) {
       throw Exception(
-          'It is necessary to generate proxy to emit the proxy loader.');
+          'It is necessary to emit proxy to emit the proxy loader.');
     }
     if (!emitSupportedLocales) {
       throw Exception(
@@ -60,7 +60,7 @@ List<DeclarationFile> createDeclarationFiles({
   String? proxyDeclarationFile;
   final localesClasses = <Locale, String>{};
 
-  if (generateProxy) {
+  if (emitProxy) {
     final proxyDeclaration = _createProxyDeclaration(
       fields,
       parent: parent,
@@ -347,7 +347,7 @@ _DelegateClass _createFlutterDelegateClass({required String supername}) {
   code += '@override\n';
   code += 'Future<$supername> load(Locale locale) {\n';
   code +=
-      'return SynchronousFuture<$supername>($supername.locales[locale]);\n';
+    'return SynchronousFuture<$supername>($supername.locales[locale]);\n';
   code += '}\n';
   code += '@override\n';
   code +=

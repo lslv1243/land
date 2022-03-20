@@ -31,7 +31,7 @@ void main(List<String> arguments) async {
       'en': messagesEn,
       'pt': messagesPt,
     },
-    generateProxy: true,
+    emitProxy: true,
     emitSupportedLocales: true,
     emitProxyLoader: true,
   );
