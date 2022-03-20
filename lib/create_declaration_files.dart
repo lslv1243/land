@@ -64,6 +64,7 @@ List<DeclarationFile> createDeclarationFiles({
       fields,
       parent: parent,
       emitLoader: emitProxyLoader,
+      useFlutterIntl: emitFlutterGlue,
     );
     final file = 'proxy_${className.toLowerCase()}.dart';
     proxyDeclarationFile = file;
@@ -81,6 +82,7 @@ List<DeclarationFile> createDeclarationFiles({
       locale.value,
       fieldsMap,
       parent: parent,
+      useFlutterIntl: emitFlutterGlue,
     );
 
     final file = '${className.toLowerCase()}_${locale.key.toLowerCase()}.dart';
@@ -113,6 +115,7 @@ String _createProxyDeclaration(
   required _LanguageSuper parent,
   String proxyField = 'proxy',
   bool emitLoader = false,
+  bool useFlutterIntl = false,
 }) {
   var body = '';
   for (final field in fields) {
@@ -133,7 +136,11 @@ String _createProxyDeclaration(
   );
 
   var code = '';
-  code += 'import \'package:intl/locale.dart\';\n';
+  if (useFlutterIntl) {
+    code += 'import \'dart:ui\';\n';
+  } else {
+    code += 'import \'package:intl/locale.dart\';\n';
+  }
   code += '\n';
   code += 'import \'${parent.fileName}\';\n';
   code += '\n';
@@ -166,6 +173,7 @@ String _createSuperDeclaration(
     name: className,
     supportedLocales: supportedLocales,
     flutterDelegateClass: delegateClass?.name,
+    useFlutterIntl: emitFlutterGlue,
   );
 
   var code = '';
@@ -179,9 +187,13 @@ String _createSuperDeclaration(
     }
     code += '\n';
   }
-  code += 'import \'package:intl/locale.dart\';\n';
   if (emitFlutterGlue) {
+    code += 'import \'package:flutter/foundation.dart\';\n';
     code += 'import \'package:flutter/widgets.dart\';\n';
+    code +=
+        'import \'package:flutter_localizations/flutter_localizations.dart\';\n';
+  } else {
+    code += 'import \'package:intl/locale.dart\';\n';
   }
   code += '\n';
   // if we wanna generate the supported locales, make sure to import the files
@@ -225,6 +237,7 @@ _LanguageDeclaration _createLanguageDeclaration(
   Map<String, String> messages,
   Map<String, DeclarationField> fieldsMap, {
   _LanguageSuper? parent,
+  bool useFlutterIntl = false,
 }) {
   final parser = Parser();
   var body = '';
@@ -259,11 +272,16 @@ _LanguageDeclaration _createLanguageDeclaration(
     body,
     localeName: localeName,
     supername: parent?.className,
+    useFlutterIntl: useFlutterIntl,
   );
 
   var code = '';
   code += 'import \'package:intl/intl.dart\';\n';
-  code += 'import \'package:intl/locale.dart\';\n';
+  if (useFlutterIntl) {
+    code += 'import \'dart:ui\';\n';
+  } else {
+    code += 'import \'package:intl/locale.dart\';\n';
+  }
   code += '\n';
   if (parent != null) {
     code += 'import \'${parent.fileName}\';\n';
@@ -327,7 +345,7 @@ _DelegateClass _createFlutterDelegateClass({required String supername}) {
   code += '@override\n';
   code += 'Future<$supername> load(Locale locale) {\n';
   code +=
-      'return SynchronousFuture<$supername>($supername.locales[locale]!);\n';
+      'return SynchronousFuture<$supername>($supername.locales[locale]!());\n';
   code += '}\n';
   code += '@override\n';
   code +=
@@ -344,6 +362,7 @@ String _createSuperClass(
   required String name,
   Map<String, String>? supportedLocales,
   required String? flutterDelegateClass,
+  required bool useFlutterIntl,
 }) {
   var code = '';
   code += 'abstract class $name {\n';
@@ -352,13 +371,21 @@ String _createSuperClass(
   if (supportedLocales != null) {
     code += 'static final locales = <Locale, $name Function()>{\n';
     for (final locale in supportedLocales.entries) {
-      code += '${_localeAsCode(locale.key)}: () => ${locale.value}(),\n';
+      final localeCode = _localeAsCode(
+        locale.key,
+        useFlutterIntl: useFlutterIntl,
+      );
+      code += '$localeCode: () => ${locale.value}(),\n';
     }
     code += '};\n';
     code += '\n';
     code += 'static final supportedLocales = <Locale>[\n';
     for (final locale in supportedLocales.entries) {
-      code += '${_localeAsCode(locale.key)},\n';
+      final localeCode = _localeAsCode(
+        locale.key,
+        useFlutterIntl: useFlutterIntl,
+      );
+      code += '$localeCode,\n';
     }
     code += '];\n';
     code += '\n';
@@ -399,6 +426,7 @@ _LanguageClass _createClass(
   String body, {
   required String localeName,
   String? supername,
+  required bool useFlutterIntl,
 }) {
   String capitalizeTag(String tag) {
     return tag
@@ -426,7 +454,12 @@ _LanguageClass _createClass(
   }
   code += 'final Locale locale;\n';
   code += '\n';
-  code += '$className(): locale = ${_localeAsCode('localeName', false)};\n';
+  final localeCode = _localeAsCode(
+    'localeName',
+    useFlutterIntl: useFlutterIntl,
+    literal: false,
+  );
+  code += '$className(): locale = $localeCode;\n';
   code += '\n';
   code += body;
   code += '}\n';
@@ -635,10 +668,15 @@ extension on List<DeclarationFieldParameter> {
   }
 }
 
-String _localeAsCode(String locale, [bool literal = true]) {
+String _localeAsCode(
+  String locale, {
+  required bool useFlutterIntl,
+  bool literal = true,
+}) {
   if (literal) {
     locale = '\'$locale\'';
   }
+  if (useFlutterIntl) return 'Locale($locale)';
   return 'Locale.parse($locale)';
 }
 
