@@ -7,7 +7,6 @@ import 'dart:io';
 
 import 'package:yaml/yaml.dart';
 import 'package:land/land.dart';
-import 'package:path/path.dart' as p;
 
 void main() async {
   final configuration = await File('land.yaml').readAsString();
@@ -15,7 +14,7 @@ void main() async {
 
   final String arbDir = configYaml['arb-dir'];
   final String outputClass = configYaml['output-class'];
-  final String outputLocalizationFile = configYaml['output-localization-file'];
+  final String outputDirectory = configYaml['output-directory'];
   final String templateArbFile = configYaml['template-arb-file'];
 
   final languageInfo = await loadARBFolder(
@@ -31,12 +30,9 @@ void main() async {
     emitSupportedLocales: true,
   );
 
-  // we are currently just using the directory where the expected output
-  // localization file should live, we are creating a custom filename for now
-  final outputPath = p.dirname(outputLocalizationFile);
   await formatAndWriteFiles(
     files,
-    path: outputPath,
+    path: outputDirectory,
     recreateFolder: true,
   );
 }
