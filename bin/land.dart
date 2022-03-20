@@ -10,7 +10,7 @@ import 'package:land/land.dart';
 import 'package:path/path.dart' as p;
 
 void main() async {
-  final configuration = await File('l10n.yaml').readAsString();
+  final configuration = await File('land.yaml').readAsString();
   final configYaml = loadYaml(configuration);
 
   final String arbDir = configYaml['arb-dir'];
