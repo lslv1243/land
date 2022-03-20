@@ -1,5 +1,7 @@
 # LAND
 
+[!["Buy Me A Coffee"](https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png)](https://www.buymeacoffee.com/lslv1243)
+
 Tool for generating localization files to be used in Dart applications.
 
 - Supports complex ICU messages
