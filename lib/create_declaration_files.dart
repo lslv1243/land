@@ -300,7 +300,13 @@ String _createSuperClass(
   if (supportedLocales != null) {
     code += 'static final locales = <Locale, $name Function()>{\n';
     for (final locale in supportedLocales.entries) {
-      code += 'Locale.parse(\'${locale.key}\'): () => ${locale.value}(),\n';
+      code += '${_localeAsCode(locale.key)}: () => ${locale.value}(),\n';
+    }
+    code += '};\n';
+    code += '\n';
+    code += 'static final supportedLocales = <Locale>{';
+    for (final locale in supportedLocales.entries) {
+      code += '${_localeAsCode(locale.key)},\n';
     }
     code += '};\n';
     code += '\n';
@@ -351,7 +357,7 @@ _LanguageClass _createClass(
   }
   code += 'final Locale locale;\n';
   code += '\n';
-  code += '$className(): locale = Locale.parse(localeName);\n';
+  code += '$className(): locale = ${_localeAsCode('localeName', false)};\n';
   code += '\n';
   code += body;
   code += '}\n';
@@ -558,6 +564,13 @@ extension on List<DeclarationFieldParameter> {
       return '$type ${parameter.name}';
     }).join(', ');
   }
+}
+
+String _localeAsCode(String locale, [bool literal = true]) {
+  if (literal) {
+    locale = '\'$locale\'';
+  }
+  return 'Locale.parse($locale)';
 }
 
 String _cleanLiteral(String literal) {
