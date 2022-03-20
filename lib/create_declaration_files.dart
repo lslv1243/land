@@ -313,11 +313,11 @@ String _createProxyClass(
   code += '\n';
   if (emitLoader) {
     code += 'void load(Locale locale) {\n';
-    code += '$proxyField = $supername.locales[locale]!();\n';
+    code += '$proxyField = $supername.locales[locale];\n';
     code += '}\n';
     code += '\n';
     code += 'factory $className.loading(Locale locale) {\n';
-    code += 'final proxy = $supername.locales[locale]!();\n';
+    code += 'final proxy = $supername.locales[locale];\n';
     code += 'return $className(proxy);\n';
     code += '}\n';
     code += '\n';
@@ -347,7 +347,7 @@ _DelegateClass _createFlutterDelegateClass({required String supername}) {
   code += '@override\n';
   code += 'Future<$supername> load(Locale locale) {\n';
   code +=
-      'return SynchronousFuture<$supername>($supername.locales[locale]!());\n';
+      'return SynchronousFuture<$supername>($supername.locales[locale]);\n';
   code += '}\n';
   code += '@override\n';
   code +=
@@ -371,10 +371,10 @@ String _createSuperClass(
   code += 'Locale get locale;\n';
   code += '\n';
   if (supportedLocales != null) {
-    code += 'static final locales = <Locale, $name Function()>{\n';
+    code += 'static final locales = <Locale, $name>{\n';
     for (final locale in supportedLocales.entries) {
       final localeCode = locale.key.forCode(useFlutterIntl);
-      code += '$localeCode: () => ${locale.value}(),\n';
+      code += '$localeCode: ${locale.value}(),\n';
     }
     code += '};\n';
     code += '\n';
