@@ -11,6 +11,7 @@ executables:
   land: land
 
 dependencies:
+  args: ^2.3.0
   path: ^1.8.0
   intl: ^0.17.0
   dart_style: ^2.2.2
