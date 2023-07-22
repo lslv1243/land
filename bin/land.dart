@@ -5,30 +5,56 @@
 
 import 'dart:io';
 
+import 'package:args/args.dart';
 import 'package:yaml/yaml.dart';
 import 'package:land/land.dart';
 import 'package:path/path.dart' as path;
 
-void main() async {
-  final configurationFile = File('land.yaml');
+void main(List<String> arguments) async {
+  final parser = ArgParser();
+
+  parser.addOption(
+    'path',
+    valueHelp: 'directory',
+    defaultsTo: '.',
+    help: 'Location of the project.',
+  );
+
+  parser.addFlag(
+    'help',
+    abbr: 'h',
+    defaultsTo: false,
+    negatable: false,
+    help: 'Print this usage information.',
+  );
+
+  final args = parser.parse(arguments);
+  if (args['help'] as bool) {
+    print(parser.usage);
+    return;
+  }
+
+  final directory = args['path'] as String;
+
   final _Configuration configuration;
   try {
-    configuration = await _Configuration.fromFile(configurationFile);
+    final file = File(path.join(directory, 'land.yaml'));
+    configuration = await _Configuration.fromFile(file);
   } on Exception {
-    print('Unable to find ${path.basename(configurationFile.path)} file.');
+    print('Unable to find land.yaml file.');
     exit(1);
   }
 
   final _Pubspec pubspec;
   try {
-    pubspec = await _Pubspec.fromDirectory('.');
+    pubspec = await _Pubspec.fromDirectory(directory);
   } on Exception {
-    print('Unable to find ${_Pubspec.fileName} file.');
+    print('Unable to find pubspec file.');
     exit(1);
   }
 
   final languageInfo = await loadARBFolder(
-    configuration.arbDir,
+    path.join(directory, configuration.arbDir),
     configurationFile: configuration.templateArbFile,
   );
 
@@ -42,7 +68,7 @@ void main() async {
 
   await formatAndWriteFiles(
     files,
-    path: configuration.outputDirectory,
+    path: path.join(directory, configuration.outputDirectory),
     recreateFolder: true,
   );
 }
