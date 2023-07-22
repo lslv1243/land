@@ -10,17 +10,18 @@ import 'package:land/land.dart';
 import 'package:path/path.dart' as path;
 
 void main() async {
+  final configurationFile = File('land.yaml');
   final _Configuration configuration;
   try {
-    configuration = await _Configuration.fromDirectory();
+    configuration = await _Configuration.fromFile(configurationFile);
   } on Exception {
-    print('Unable to find ${_Configuration.fileName} file.');
+    print('Unable to find ${path.basename(configurationFile.path)} file.');
     exit(1);
   }
 
   final _Pubspec pubspec;
   try {
-    pubspec = await _Pubspec.fromDirectory();
+    pubspec = await _Pubspec.fromDirectory('.');
   } on Exception {
     print('Unable to find ${_Pubspec.fileName} file.');
     exit(1);
@@ -30,7 +31,6 @@ void main() async {
     configuration.arbDir,
     configurationFile: configuration.templateArbFile,
   );
-
 
   final files = createDeclarationFiles(
     fields: languageInfo.fields,
@@ -56,7 +56,7 @@ class _Pubspec {
 
   _Pubspec(this._yaml);
 
-  static Future<_Pubspec> fromDirectory([String directory = '.']) async {
+  static Future<_Pubspec> fromDirectory(String directory) async {
     final file = File(path.join(directory, fileName));
     final yaml = loadYaml(await file.readAsString());
     return _Pubspec(yaml);
@@ -64,8 +64,6 @@ class _Pubspec {
 }
 
 class _Configuration {
-  static final fileName = 'land.yaml';
-
   final String arbDir;
   final String outputClass;
   final String outputDirectory;
@@ -78,8 +76,7 @@ class _Configuration {
     required this.templateArbFile,
   });
 
-  static Future<_Configuration> fromDirectory([String directory = '.']) async {
-    final file = File(path.join(directory, fileName));
+  static Future<_Configuration> fromFile(File file) async {
     final yaml = loadYaml(await file.readAsString());
     return _Configuration(
       arbDir: yaml['arb-dir'],
