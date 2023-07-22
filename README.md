@@ -9,6 +9,22 @@ Tool for generating localization files to be used in Dart applications.
 
 ---
 
+## Global Installation
+
+You can install `land` globally on your system which allows you to use it from anywhere.
+
+```bash
+dart pub global activate land
+```
+
+Ensure that the Dart SDK/bin is included in your PATH. If it's not, you'll need to add it. The exact method depends on your operating system. 
+
+On Linux or macOS, you typically add it to your shell profile (e.g., `~/.bashrc`, `~/.bash_profile`, or `~/.zshrc`). 
+
+On Windows, you add it via the System Properties.
+
+---
+
 ## Using instead of `flutter gen-l10n`
 
 
@@ -39,16 +55,16 @@ generate: true
 /lib/.gen/
 ```
 
-### 5. Add land as dependency
-#### **pubspec.yaml**
-```yaml
-# add to dev_dependencies:
-land: any
+### 5. Install land globally
+Instead of adding `land` as a dev_dependency, we will install it globally
+```bash
+dart pub global activate land
 ```
 
 ### 6. Generate the files
-```
-flutter pub run land
+With `land` installed globally, you can generate the localization files from any directory in your terminal
+```bash
+land
 ```
 
 ### 7. Profit 🚀
@@ -91,8 +107,4 @@ Update your `.gitignore` to ignore the generated files.
 ```
 
 ### 4. Run `land`
-After running land all the files should be generated to be used. If it is a Flutter project it will contain the glue to use in a Flutter application. More details about Flutter localization at: https://docs.flutter.dev/development/accessibility-and-localization/internationalization.
-
----
-
-NOTE: I highly recommend [downloading the tool](https://github.com/lslv1243/land.git), building it, making it available globally and use it this way instead of using `flutter pub run`.
+With `land` installed globally, you can generate the localization files from any directory in your terminal. More details about Flutter localization at: https://docs.flutter.dev/development/accessibility-and-localization/internationalization.
