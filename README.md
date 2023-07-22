@@ -2,11 +2,12 @@
 
 [![Buy Me A Coffee](https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png)](https://www.buymeacoffee.com/lslv1243)
 
-LAND is a powerful tool for generating localization files to be used in Dart applications, including Flutter apps. It supports complex ICU messages and works effectively even on non-Flutter applications.
+LAND is a powerful tool for generating localization files to be used in Dart applications, including Flutter apps. It supports complex ICU messages, works effectively even on non-Flutter applications, and offers multi-project support to simplify localization tasks in large codebases.
 
 - [Requirements](#requirements)
 - [Installation](#installation)
 - [Using LAND](#using-land)
+- [Multi-Project Support](#multi-project-support)
 - [Configuration Example](#configuration-example)
 - [Usage](#usage)
 - [Troubleshooting](#troubleshooting)
@@ -45,6 +46,26 @@ LAND can be used as an alternative to `flutter gen-l10n`. Here are the steps to 
 6. Run `land` to generate the localization files.
 
 After these steps, you should have a robust localization system set up for your Dart application.
+
+---
+
+## Multi-Project Support
+
+One of the standout features of LAND is its support for multi-project localization. If you run LAND in a directory that isn't a Dart or Flutter project, it automatically searches for Dart or Flutter projects one level down from the current directory. This means you can generate localization files for all projects within a directory by running a single `land` command. This functionality is especially beneficial in monorepo setups or when managing multiple related projects.
+
+To use this feature, simply navigate to the parent directory of your projects and run:
+
+```bash
+land
+```
+
+Or specify the parent directory using the `--path` argument like:
+
+```bash
+land --path <parent-directory>
+```
+
+LAND takes care of the rest, generating localization files for each Dart or Flutter project in the directory.
 
 ---
 
