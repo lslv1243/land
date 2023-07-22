@@ -9,17 +9,11 @@ import 'package:yaml/yaml.dart';
 import 'package:land/land.dart';
 
 void main() async {
-  final configuration = await File('land.yaml').readAsString();
-  final configYaml = loadYaml(configuration);
-
-  final String arbDir = configYaml['arb-dir'];
-  final String outputClass = configYaml['output-class'];
-  final String outputDirectory = configYaml['output-directory'];
-  final String templateArbFile = configYaml['template-arb-file'];
+  final configuration = await _Configuration.fromFile(File('land.yaml'));
 
   final languageInfo = await loadARBFolder(
-    arbDir,
-    configurationFile: templateArbFile,
+    configuration.arbDir,
+    configurationFile: configuration.templateArbFile,
   );
 
   final isFlutter = await _isFlutterProject();
@@ -27,14 +21,14 @@ void main() async {
   final files = createDeclarationFiles(
     fields: languageInfo.fields,
     locales: languageInfo.locales,
-    className: outputClass,
+    className: configuration.outputClass,
     emitFlutterGlue: isFlutter,
     emitSupportedLocales: true,
   );
 
   await formatAndWriteFiles(
     files,
-    path: outputDirectory,
+    path: configuration.outputDirectory,
     recreateFolder: true,
   );
 }
@@ -50,4 +44,28 @@ Future<bool> _isFlutterProject() async {
   }
   final pubspecYaml = loadYaml(pubspec);
   return pubspecYaml['dependencies']?['flutter'] != null;
+}
+
+class _Configuration {
+  final String arbDir;
+  final String outputClass;
+  final String outputDirectory;
+  final String templateArbFile;
+
+  _Configuration({
+    required this.arbDir,
+    required this.outputClass,
+    required this.outputDirectory,
+    required this.templateArbFile,
+  });
+
+  static Future<_Configuration> fromFile(File file) async {
+    final yaml = loadYaml(await file.readAsString());
+    return _Configuration(
+      arbDir: yaml['arb-dir'],
+      outputClass: yaml['output-class'],
+      outputDirectory: yaml['output-directory'],
+      templateArbFile: yaml['template-arb-file'],
+    );
+  }
 }
