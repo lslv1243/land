@@ -36,21 +36,46 @@ void main(List<String> arguments) async {
 
   final directory = args['path'] as String;
 
+  try {
+    await _runForDirectory(directory);
+  } on Exception catch (exception) {
+    // If we failed to run in the current folder
+    // we try to run in every folder inside the provided folder
+    // if any run, we consider a success.
+    // This implementation is to support folder of dart projects.
+    var anyRan = false;
+    await for (final entity in Directory(directory).list()) {
+      try {
+        if (entity is Directory) {
+          await _runForDirectory(entity.path);
+          anyRan = true;
+        }
+      } on Exception {
+        // ignore
+      }
+    }
+
+    if (!anyRan) {
+      print(exception);
+      exit(1);
+    }
+  }
+}
+
+Future<void> _runForDirectory(String directory) async {
   final _Configuration configuration;
   try {
     final file = File(path.join(directory, 'land.yaml'));
     configuration = await _Configuration.fromFile(file);
   } on Exception {
-    print('Unable to find land.yaml file.');
-    exit(1);
+    throw Exception('Unable to find land.yaml file.');
   }
 
   final _Pubspec pubspec;
   try {
     pubspec = await _Pubspec.fromDirectory(directory);
   } on Exception {
-    print('Unable to find pubspec file.');
-    exit(1);
+    throw Exception('Unable to find pubspec file.');
   }
 
   final languageInfo = await loadARBFolder(
