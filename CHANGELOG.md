@@ -1,3 +1,13 @@
+## 0.0.5
+
+This version introduces several enhancements to improve user experience and expand the functionality of the LAND tool.
+
+- Enhanced Error Messaging: The error messages have been improved to provide more clarity.
+
+- Project Path Specification: Users can now specify the path of the Dart or Flutter project they're working on by using the new `--path` argument. This allows for more flexibility, particularly in situations where the LAND tool is not being run in the project's root directory. The command would be like: `land --path <directory>`
+
+- Multi-Project Support: If the LAND tool is run in a directory that isn't a Dart or Flutter project, it will now search for Dart or Flutter projects one level down from the current directory. This enhancement allows for bulk localization file generation across multiple projects by running a single command in a parent directory. This can be particularly useful in monorepo setups or when managing multiple related projects.
+
 ## 0.0.4
 
 In this version, we've updated the package configuration to allow for global installation. This means you can now install LAND once on your system and use it across multiple projects, instead of having to install it as a dependency for each individual project.
