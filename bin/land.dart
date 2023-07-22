@@ -7,22 +7,23 @@ import 'dart:io';
 
 import 'package:yaml/yaml.dart';
 import 'package:land/land.dart';
+import 'package:path/path.dart' as path;
 
 void main() async {
-  final configuration = await _Configuration.fromFile(File('land.yaml'));
+  final configuration = await _Configuration.fromFilePath('land.yaml');
 
   final languageInfo = await loadARBFolder(
     configuration.arbDir,
     configurationFile: configuration.templateArbFile,
   );
 
-  final isFlutter = await _isFlutterProject();
+  final pubspec = await _Pubspec.fromDirectory();
 
   final files = createDeclarationFiles(
     fields: languageInfo.fields,
     locales: languageInfo.locales,
     className: configuration.outputClass,
-    emitFlutterGlue: isFlutter,
+    emitFlutterGlue: pubspec.isFlutterProject,
     emitSupportedLocales: true,
   );
 
@@ -33,17 +34,18 @@ void main() async {
   );
 }
 
-Future<bool> _isFlutterProject() async {
-  final String pubspec;
-  try {
-    pubspec = await File('pubspec.yaml').readAsString();
-  } catch (_) {
-    // if we don't find a pubspec.yaml we just assume
-    // it is not flutter and go on with our lives
-    return false;
+class _Pubspec {
+  final dynamic _yaml;
+
+  bool get isFlutterProject => _yaml['dependencies']?['flutter'] != null;
+
+  _Pubspec(this._yaml);
+
+  static Future<_Pubspec> fromDirectory([String directory = '.']) async {
+    final file = File(path.join(directory, 'pubspec.yaml'));
+    final yaml = loadYaml(await file.readAsString());
+    return _Pubspec(yaml);
   }
-  final pubspecYaml = loadYaml(pubspec);
-  return pubspecYaml['dependencies']?['flutter'] != null;
 }
 
 class _Configuration {
@@ -59,8 +61,8 @@ class _Configuration {
     required this.templateArbFile,
   });
 
-  static Future<_Configuration> fromFile(File file) async {
-    final yaml = loadYaml(await file.readAsString());
+  static Future<_Configuration> fromFilePath(String filePath) async {
+    final yaml = loadYaml(await File(filePath).readAsString());
     return _Configuration(
       arbDir: yaml['arb-dir'],
       outputClass: yaml['output-class'],
