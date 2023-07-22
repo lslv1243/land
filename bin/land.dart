@@ -10,14 +10,27 @@ import 'package:land/land.dart';
 import 'package:path/path.dart' as path;
 
 void main() async {
-  final configuration = await _Configuration.fromFilePath('land.yaml');
+  final _Configuration configuration;
+  try {
+    configuration = await _Configuration.fromDirectory();
+  } on Exception {
+    print('Unable to find ${_Configuration.fileName} file.');
+    exit(1);
+  }
+
+  final _Pubspec pubspec;
+  try {
+    pubspec = await _Pubspec.fromDirectory();
+  } on Exception {
+    print('Unable to find ${_Pubspec.fileName} file.');
+    exit(1);
+  }
 
   final languageInfo = await loadARBFolder(
     configuration.arbDir,
     configurationFile: configuration.templateArbFile,
   );
 
-  final pubspec = await _Pubspec.fromDirectory();
 
   final files = createDeclarationFiles(
     fields: languageInfo.fields,
@@ -35,6 +48,8 @@ void main() async {
 }
 
 class _Pubspec {
+  static final fileName = 'pubspec.yaml';
+
   final dynamic _yaml;
 
   bool get isFlutterProject => _yaml['dependencies']?['flutter'] != null;
@@ -42,13 +57,15 @@ class _Pubspec {
   _Pubspec(this._yaml);
 
   static Future<_Pubspec> fromDirectory([String directory = '.']) async {
-    final file = File(path.join(directory, 'pubspec.yaml'));
+    final file = File(path.join(directory, fileName));
     final yaml = loadYaml(await file.readAsString());
     return _Pubspec(yaml);
   }
 }
 
 class _Configuration {
+  static final fileName = 'land.yaml';
+
   final String arbDir;
   final String outputClass;
   final String outputDirectory;
@@ -61,8 +78,9 @@ class _Configuration {
     required this.templateArbFile,
   });
 
-  static Future<_Configuration> fromFilePath(String filePath) async {
-    final yaml = loadYaml(await File(filePath).readAsString());
+  static Future<_Configuration> fromDirectory([String directory = '.']) async {
+    final file = File(path.join(directory, fileName));
+    final yaml = loadYaml(await file.readAsString());
     return _Configuration(
       arbDir: yaml['arb-dir'],
       outputClass: yaml['output-class'],
