@@ -89,6 +89,8 @@ Future<void> _runForDirectory(String directory) async {
     className: configuration.outputClass,
     emitFlutterGlue: pubspec.isFlutterProject,
     emitSupportedLocales: true,
+    emitProxy: configuration.proxy != null,
+    emitProxyLoader: configuration.proxy?.loader == true,
   );
 
   await formatAndWriteFiles(
@@ -114,26 +116,48 @@ class _Pubspec {
   }
 }
 
+class _ProxyConfiguration {
+  final bool loader;
+
+  _ProxyConfiguration({
+    required this.loader,
+  });
+
+  static _ProxyConfiguration fromYaml(dynamic yaml) {
+    return _ProxyConfiguration(
+      loader: yaml['loader'] ?? false,
+    );
+  }
+}
+
 class _Configuration {
   final String arbDir;
   final String outputClass;
   final String outputDirectory;
   final String templateArbFile;
+  final _ProxyConfiguration? proxy;
 
   _Configuration({
     required this.arbDir,
     required this.outputClass,
     required this.outputDirectory,
     required this.templateArbFile,
+    required this.proxy,
   });
 
-  static Future<_Configuration> fromFile(File file) async {
-    final yaml = loadYaml(await file.readAsString());
+  static _Configuration fromYaml(dynamic yaml) {
+    final proxy = yaml['proxy'];
     return _Configuration(
       arbDir: yaml['arb-dir'],
       outputClass: yaml['output-class'],
       outputDirectory: yaml['output-directory'],
       templateArbFile: yaml['template-arb-file'],
+      proxy: proxy == null ? null : _ProxyConfiguration.fromYaml(proxy),
     );
+  }
+
+  static Future<_Configuration> fromFile(File file) async {
+    final yaml = loadYaml(await file.readAsString());
+    return _Configuration.fromYaml(yaml);
   }
 }
