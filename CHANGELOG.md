@@ -1,3 +1,53 @@
+## 0.0.7
+
+This version introduces support for a proxy class, designed for cases where you need to change the active locale without altering the underlying instance reference. The proxy class acts as a reference handler, enabling you to seamlessly switch between different locales within your application.
+
+### Proxy Class for Locale Management
+The proxy class is particularly useful when you want to change the active locale without affecting the underlying instance. It serves as a reference manager, allowing you to switch between different locales dynamically.
+
+To configure the generation of the proxy class, update your `land.yaml` configuration file by adding a `proxy` object. This object can optionally contain a `loader` property set to either `true` or `false`.
+
+Example `land.yaml` for the proxy class:
+```yaml
+proxy: {}
+```
+
+Example `land.yaml` for the proxy class with loader:
+```yaml
+proxy:
+  loader: true
+```
+
+Here's what the generated proxy class looks like:
+```dart
+class ProxyL10N implements L10N {
+  @override
+  Locale get locale => proxy.locale;
+
+  L10N proxy;
+
+  ProxyL10N(this.proxy);
+
+  @override
+  String get notification_dontLoseDailyPrizesStreak_title =>
+      proxy.notification_dontLoseDailyPrizesStreak_title;
+}
+```
+
+And for the proxy class with loader code:
+```dart
+void load(Locale locale) {
+  proxy = L10N.locales[locale]!;
+}
+
+factory ProxyL10N.loading(Locale locale) {
+  final proxy = L10N.locales[locale]!;
+  return ProxyL10N(proxy);
+}
+```
+
+The introduction of the proxy class with loader code provides you with greater flexibility in managing localization within your Dart and Flutter projects. It allows you to switch locales seamlessly while maintaining the same instance reference, making it a true "proxy" for locale management.
+
 ## 0.0.6
 
 - Update README
